@@ -56,3 +56,21 @@ def test_registry_db_created(client, tmp_path):
     client.post("/tools/ingest_dexpi", json={})
     client.post("/tools/export_artefacts", json={})
     assert (tmp_path / "registry.db").exists() or list(tmp_path.rglob("registry.db"))
+
+
+def test_unknown_tool_is_404(client):
+    r = client.post("/tools/no_such_tool", json={})
+    assert r.status_code == 404
+
+
+def test_typed_job_create_is_422(client):
+    r = client.post("/jobs", json={"fixture": 123})
+    assert r.status_code == 422
+
+
+def test_duplicate_job_key_is_409(client):
+    body = {"fixture": "sample_pid.xml", "job_key": "dup-job"}
+    first = client.post("/jobs", json=body)
+    assert first.status_code == 202
+    second = client.post("/jobs", json=body)
+    assert second.status_code == 409

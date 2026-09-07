@@ -81,16 +81,16 @@ A18 PASS total=30 iwps=23 size_ok=True qty_ok=True crew_ok=True
 A19 PASS hard=1 soft=6 keys=['adjacent_count', 'craft_warnings', 'flagged', 'flagged_count', 'hard_count', 'message', 'same_volume_count', 'soft_adjacent']
 A20 PASS dirty={'dirty': True, 'change_id': 'CHG-7bf4a640', 'artefact_kinds': ['routes', 'supports', 'isometric', 'quantities', 'pcf', 'clash', 'ga', 'test_pack', 'work_package'], 'artefact_ids': ['ART-200-P-1002.pcf', 'ART-200-P-1001.pcf', 'ART-200-D-1010.pcf', 'ART-210-G-2001.pcf'], 'affected_wp_ids': [], 'affected_stages': ['topology', 'piping', 'outputs']} line=LINE-200-P-1001
 A21 PASS level=L3_60 reasons={'fabricated_count': 0, 'unmatched_opc_count': 0, 'design_pressure_present': False, 'clash_hard': 0, 'factors': ['tags+sheets', 'topology', 'layout+equipment']}
-A22 PASS bad_status=404 openapi_committed=True
-A23 PASS mcp_server present
+A22 PASS unknown=404 typed=422 first=202 dup=409 openapi=True
+A23 PASS common=21 mismatches=none
 A24 PASS health=200 tools=401
-A25 PASS status=202 body={"id":"job-18c8b67d4d","job_id":"job-18c8b67d4d","status":"queued"}
+A25 PASS status=202 queued job
 A26 PASS keys=['status', 'fail_closed', 'data_dir_writable', 'registry_schema', 'fixture_shas', 'schema_version']
-A27 PASS missing=none
-A28 PASS ci_missing=none
+A27 FAIL missing artifacts/ci/docker_health.json
+A28 FAIL ci_missing=no committed ci_run.json / Actions API evidence for parent sha
 A29 PASS changelog=True regen=True tools_mapped=True
-A30 PASS tags=['v1.0.0'] has_v1=True
-ACCEPTANCE: 30/30 PASS
+A30 FAIL local=False remote=False (v1.0.1 required; no changelog fallback)
+ACCEPTANCE: 27/30 PASS
 ```
 
 ## REAL vs STUB

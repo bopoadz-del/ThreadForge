@@ -20,19 +20,8 @@ jobs:
         run: mypy --strict src
       - name: Pytest
         run: pytest -q
-      - name: Acceptance
-        run: python scripts/acceptance.py
-      - name: OpenAPI committed
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          from threadforge.server import export_openapi
-          import json
-          fresh = json.loads(export_openapi(Path("/tmp/openapi-fresh.json")).read_text())
-          committed = json.loads(Path("openapi.json").read_text())
-          assert fresh["info"]["title"] == committed["info"]["title"]
-          print("openapi ok")
-          PY
+      - name: OpenAPI dump/diff
+        run: python scripts/openapi_diff.py
       - name: Golden baseline PCF fails contiguity reader
         run: |
           python - <<'PY'
@@ -47,6 +36,11 @@ jobs:
               pass
           print("baseline defect confirmed")
           PY
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
       - name: Docker build
         run: docker build -t threadforge:ci .
       - name: Container health
@@ -63,3 +57,46 @@ jobs:
           docker logs tfci || true
           docker rm -f tfci
           exit 1
+      - name: Write docker_health evidence
+        run: |
+          mkdir -p artifacts/ci
+          python - <<'PY'
+          import json
+          import os
+          import subprocess
+          from pathlib import Path
+          sha = os.environ.get("GITHUB_SHA") or subprocess.check_output(
+              ["git", "rev-parse", "HEAD"], text=True
+          ).strip()
+          Path("artifacts/ci").mkdir(parents=True, exist_ok=True)
+          Path("artifacts/ci/docker_health.json").write_text(
+              json.dumps(
+                  {"sha": sha, "status": "healthy", "image": "threadforge:ci"},
+                  indent=2,
+              )
+              + "\n",
+              encoding="utf-8",
+          )
+          print("wrote artifacts/ci/docker_health.json for", sha)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: docker_health
+          path: artifacts/ci/docker_health.json
+
+  acceptance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: |
+          python -m pip install -U pip
+          pip install -e ".[dev,ifc,dxf,xsd,server]"
+      - name: Acceptance A01–A30
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python scripts/acceptance.py

@@ -167,6 +167,7 @@ class JobCreate(BaseModel):
     fixture: Optional[str] = None
     path: Optional[str] = None
     schedule: Optional[str] = None
+    job_key: Optional[str] = None
 
 
 def _run_job(job_id: str, fixture: Optional[str], path: Optional[str], schedule: Optional[str]) -> None:
@@ -288,9 +289,16 @@ def create_app() -> FastAPI:
 
     @app.post("/jobs", status_code=202)
     def create_job(body: JobCreate, _auth: Principal = Depends(require_write)) -> dict[str, str]:
-        job_id = f"job-{uuid.uuid4().hex[:10]}"
         with _JOBS_LOCK:
-            _JOBS[job_id] = {"state": "queued", "id": job_id}
+            if body.job_key:
+                for existing in _JOBS.values():
+                    if existing.get("job_key") == body.job_key:
+                        raise HTTPException(
+                            status_code=409,
+                            detail=f"duplicate job_key: {body.job_key}",
+                        )
+            job_id = f"job-{uuid.uuid4().hex[:10]}"
+            _JOBS[job_id] = {"state": "queued", "id": job_id, "job_key": body.job_key}
         _EXECUTOR.submit(_run_job, job_id, body.fixture, body.path, body.schedule)
         return {"id": job_id, "job_id": job_id, "status": "queued"}
 

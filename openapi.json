@@ -298,6 +298,17 @@
               }
             ],
             "title": "Schedule"
+          },
+          "job_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Key"
           }
         },
         "type": "object",

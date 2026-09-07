@@ -8,10 +8,13 @@ Exit 0 iff all 30 PASS.
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import subprocess
 import sys
 import tempfile
+import urllib.error
+import urllib.request
 from pathlib import Path
 from typing import Callable
 
@@ -37,6 +40,25 @@ def _safe(aid: str, fn: Callable[[], tuple[bool, str]]) -> None:
 
 def _sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _git_parent_sha() -> str:
+    return subprocess.check_output(
+        ["git", "rev-parse", "HEAD^"],
+        cwd=str(ROOT),
+        text=True,
+        stderr=subprocess.DEVNULL,
+    ).strip()
+
+
+def _dir_hashes(root: Path) -> dict[str, str]:
+    out: dict[str, str] = {}
+    if not root.exists():
+        return out
+    for fp in sorted(root.rglob("*")):
+        if fp.is_file() and fp.name != "registry.db":
+            out[str(fp.relative_to(root))] = _sha(fp)
+    return out
 
 
 def A01() -> tuple[bool, str]:
@@ -576,29 +598,84 @@ def A22() -> tuple[bool, str]:
         from threadforge.server import create_app
     except Exception as exc:  # noqa: BLE001
         return False, f"import:{exc}"
+    os.environ["TF_API_TOKENS"] = "engineer:eng-token:write,reviewer:rev-token:read"
+    os.environ["TF_DATA"] = tempfile.mkdtemp()
     app = create_app()
     client = TestClient(app)
-    # bad tool call should not be 200
-    r = client.post("/tools/no_such_tool", json={})
+    headers = {"Authorization": "Bearer eng-token"}
+    unknown = client.post("/tools/no_such_tool", headers=headers, json={})
+    typed = client.post("/jobs", headers=headers, json={"fixture": 123})
+    first = client.post(
+        "/jobs",
+        headers=headers,
+        json={"fixture": "sample_pid.xml", "job_key": "A22-dup"},
+    )
+    dup = client.post(
+        "/jobs",
+        headers=headers,
+        json={"fixture": "sample_pid.xml", "job_key": "A22-dup"},
+    )
     openapi = ROOT / "openapi.json"
-    committed = openapi.exists()
-    ok = r.status_code in (404, 422, 405, 401) and committed
-    return ok, f"bad_status={r.status_code} openapi_committed={committed}"
+    ok = (
+        unknown.status_code == 404
+        and typed.status_code == 422
+        and first.status_code == 202
+        and dup.status_code == 409
+        and openapi.exists()
+    )
+    return ok, (
+        f"unknown={unknown.status_code} typed={typed.status_code} "
+        f"first={first.status_code} dup={dup.status_code} openapi={openapi.exists()}"
+    )
 
 
 def A23() -> tuple[bool, str]:
-    mcp = ROOT / "src/threadforge/mcp_server.py"
-    test = ROOT / "tests/test_mcp.py"
-    if not mcp.exists():
-        return False, "mcp_server.py missing"
-    if not test.exists():
-        return False, "tests/test_mcp.py missing"
-    # run a minimal import
     try:
-        import threadforge.mcp_server as m  # noqa: F401
+        from fastapi.testclient import TestClient
+
+        from threadforge import agent_tools
+        from threadforge.mcp_server import call_tool
+        from threadforge.server import create_app
     except Exception as exc:  # noqa: BLE001
         return False, f"import:{exc}"
-    return True, "mcp_server present"
+    with tempfile.TemporaryDirectory() as td:
+        base = Path(td)
+        mcp_dir = base / "mcp"
+        http_dir = base / "http"
+        mcp_dir.mkdir()
+        http_dir.mkdir()
+        agent_tools.SESSION.graph = None
+        agent_tools.SESSION.job = None
+        agent_tools.SESSION.cascade = None
+        agent_tools.SESSION.schedule = None
+        call_tool("ingest_dexpi", {"path": "sample_pid_rich.xml"})
+        call_tool("export_artefacts", {"output_dir": str(mcp_dir)})
+        mcp_hashes = _dir_hashes(mcp_dir)
+
+        agent_tools.SESSION.graph = None
+        agent_tools.SESSION.job = None
+        agent_tools.SESSION.cascade = None
+        agent_tools.SESSION.schedule = None
+        prev_tokens = os.environ.pop("TF_API_TOKENS", None)
+        os.environ["TF_DATA"] = str(base / "data")
+        try:
+            client = TestClient(create_app())
+            ingested = client.post("/tools/ingest_dexpi", json={"path": "sample_pid_rich.xml"})
+            exported = client.post("/tools/export_artefacts", json={"output_dir": str(http_dir)})
+        finally:
+            if prev_tokens is not None:
+                os.environ["TF_API_TOKENS"] = prev_tokens
+        if ingested.status_code != 200 or exported.status_code != 200:
+            return False, f"http ingest={ingested.status_code} export={exported.status_code}"
+        http_hashes = exported.json().get("artefact_hashes") or _dir_hashes(http_dir)
+        http_hashes = {k.replace("\\", "/"): v for k, v in http_hashes.items()}
+        mcp_hashes = {k.replace("\\", "/"): v for k, v in mcp_hashes.items()}
+        common = set(mcp_hashes) & set(http_hashes)
+        if not common:
+            return False, f"no common artefacts mcp={len(mcp_hashes)} http={len(http_hashes)}"
+        mismatches = [k for k in sorted(common) if mcp_hashes[k] != http_hashes[k]]
+        ok = not mismatches
+        return ok, f"common={len(common)} mismatches={mismatches[:5] or 'none'}"
 
 
 def A24() -> tuple[bool, str]:
@@ -652,22 +729,65 @@ def A26() -> tuple[bool, str]:
 
 
 def A27() -> tuple[bool, str]:
-    files = [
-        ROOT / "Dockerfile",
-        ROOT / "render.yaml",
-        ROOT / "docker-compose.yml",
-        ROOT / "scripts/release_gate.py",
-    ]
-    missing = [str(p.name) for p in files if not p.exists()]
-    return (not missing), f"missing={missing or 'none'}"
+    ev = ROOT / "artifacts/ci/docker_health.json"
+    if not ev.is_file():
+        return False, "missing artifacts/ci/docker_health.json"
+    try:
+        data = json.loads(ev.read_text(encoding="utf-8"))
+        parent = _git_parent_sha()
+    except Exception as exc:  # noqa: BLE001
+        return False, f"evidence:{type(exc).__name__}: {exc}"
+    named = data.get("sha") or data.get("parent_sha") or data.get("git_sha")
+    if named != parent:
+        return False, f"evidence_sha={named} parent={parent} (HEAD evidence must name parent sha)"
+    status = str(data.get("status") or "")
+    ok = status in {"healthy", "ok", "pass"}
+    return ok, f"sha={named} status={status}"
 
 
 def A28() -> tuple[bool, str]:
-    ci = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
-    need = ["ruff", "mypy", "pytest", "acceptance.py"]
-    missing = [k for k in need if k not in ci]
-    # also run local gate quickly? acceptance self is running — check ci mentions docker optional
-    return (not missing), f"ci_missing={missing or 'none'}"
+    ev = ROOT / "artifacts/ci/ci_run.json"
+    try:
+        parent = _git_parent_sha()
+    except Exception as exc:  # noqa: BLE001
+        return False, f"parent_sha:{type(exc).__name__}: {exc}"
+    if ev.is_file():
+        try:
+            data = json.loads(ev.read_text(encoding="utf-8"))
+        except Exception as exc:  # noqa: BLE001
+            return False, f"ci_run.json:{type(exc).__name__}: {exc}"
+        named = data.get("sha") or data.get("head_sha") or data.get("parent_sha")
+        conclusion = str(data.get("conclusion") or data.get("status") or "").lower()
+        if named != parent:
+            return False, f"ci_run.json sha={named} parent={parent}"
+        if conclusion not in {"success", "completed"}:
+            return False, f"ci_run.json conclusion={conclusion}"
+        return True, f"ci_run.json sha={named} conclusion={conclusion}"
+
+    repo = os.environ.get("GITHUB_REPOSITORY", "bopoadz-del/ThreadForge")
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    url = (
+        f"https://api.github.com/repos/{repo}/actions/runs"
+        f"?head_sha={parent}&status=completed&per_page=10"
+    )
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "threadforge-acceptance",
+    }
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    try:
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            payload = json.loads(resp.read().decode())
+        runs = payload.get("workflow_runs") or []
+        good = [r for r in runs if str(r.get("conclusion") or "").lower() == "success"]
+        if good:
+            run0 = good[0]
+            return True, f"actions_api run={run0.get('id')} sha={parent} conclusion=success"
+        return False, f"actions_api no successful run for parent={parent} n={len(runs)}"
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, OSError) as exc:
+        return False, f"ci_missing=no ci_run.json and Actions API failed: {type(exc).__name__}: {exc}"
 
 
 def A29() -> tuple[bool, str]:
@@ -682,21 +802,26 @@ def A29() -> tuple[bool, str]:
 
 
 def A30() -> tuple[bool, str]:
-    # Prefer git tag v1.0.0; zip/archive drops have no .git — fall back to CHANGELOG.
+    # v1.0.1 required locally and on origin. No CHANGELOG fallback.
     try:
-        tags = subprocess.check_output(
-            ["git", "tag"],
+        local = subprocess.check_output(
+            ["git", "tag", "-l", "v1.0.1"],
             cwd=str(ROOT),
             text=True,
             stderr=subprocess.DEVNULL,
-        )
-        has = "v1.0.0" in tags.split()
-        return has, f"tags={tags.split()[:5]} has_v1={has}"
-    except Exception:
-        cl = ROOT / "CHANGELOG.md"
-        body = cl.read_text(encoding="utf-8") if cl.exists() else ""
-        has = "## v1.0.0" in body
-        return has, f"source=changelog has_v1={has}"
+        ).strip()
+        remote = subprocess.check_output(
+            ["git", "ls-remote", "--tags", "origin", "refs/tags/v1.0.1"],
+            cwd=str(ROOT),
+            text=True,
+            stderr=subprocess.DEVNULL,
+        ).strip()
+    except Exception as exc:  # noqa: BLE001
+        return False, f"git:{type(exc).__name__}: {exc}"
+    has_local = any(tag == "v1.0.1" for tag in local.split())
+    has_remote = "refs/tags/v1.0.1" in remote
+    ok = has_local and has_remote
+    return ok, f"local={has_local} remote={has_remote} (v1.0.1 required; no changelog fallback)"
 
 
 CHECKS = [
