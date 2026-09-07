@@ -1,0 +1,76 @@
+[
+  {
+    "name": "ProteusPIDSchema_4.1.xsd",
+    "url": "https://raw.githubusercontent.com/ProteusXML/proteusxml/master/ProteusPIDSchema%204.1.xsd",
+    "sha256": "f14652c0f3ff79eea6bb1c92f276c79f41ebad2945324f70b348c377c00385ff",
+    "bytes": 92156,
+    "ok": true
+  },
+  {
+    "name": "ProteusPIDSchema_4.1.1_RC1.xsd",
+    "url": "https://raw.githubusercontent.com/ProteusXML/proteusxml/master/ProteusPIDSchema%204.1.1%20release%20candidate%201.xsd",
+    "sha256": "09864b15ef81dca3334bcdda78088602bf22d9d5c0bb1d2d54b058241b39eecb",
+    "bytes": 94220,
+    "ok": true
+  },
+  {
+    "name": "C01V04-VER.EX01.xml",
+    "url": "https://gitlab.com/api/v4/projects/dexpi%2FTrainingTestCases/repository/files/dexpi%201.3%2Fexample%20pids%2FC01%20DEXPI%20Reference%20P%26ID%2FC01V04-VER.EX01.xml/raw?ref=master",
+    "path": "dexpi 1.3/example pids/C01 DEXPI Reference P&ID/C01V04-VER.EX01.xml",
+    "sha256": "a2b172f04e0dcf9a668e158c6dee3b5fd0dd4e9027b572dc39e54470562b809c",
+    "bytes": 445726,
+    "ok": true
+  },
+  {
+    "name": "C03V04-VER.EX02.xml",
+    "url": "https://gitlab.com/api/v4/projects/dexpi%2FTrainingTestCases/repository/files/dexpi%201.3%2Fexample%20pids%2FC03%20Piping%20%28Equinor%29%2FC03V04-VER.EX02.xml/raw?ref=master",
+    "path": "dexpi 1.3/example pids/C03 Piping (Equinor)/C03V04-VER.EX02.xml",
+    "sha256": "a1c892f3bc21338c2546baf71e10abf11e3653b7cd6956b1a24bcfab0db88f14",
+    "bytes": 68507,
+    "ok": true
+  },
+  {
+    "name": "E06V01-VER.EX01.xml",
+    "url": "https://gitlab.com/api/v4/projects/dexpi%2FTrainingTestCases/repository/files/dexpi%201.3%2Fexample%20pids%2FE06%20Pump%2C%20HeatExchanger%2C%20Nozzles%20Connected%20With%20PNS%2FE06V01-VER.EX01.xml/raw?ref=master",
+    "path": "dexpi 1.3/example pids/E06 Pump, HeatExchanger, Nozzles Connected With PNS/E06V01-VER.EX01.xml",
+    "sha256": "2a6b4762cd1c85c9fcf329f885ca368769a84ebd5dbf5966c6a0781bb4038351",
+    "bytes": 6288,
+    "ok": true
+  },
+  {
+    "name": "P01V01-VER.EX01.xml",
+    "url": "https://gitlab.com/api/v4/projects/dexpi%2FTrainingTestCases/repository/files/dexpi%201.3%2Fexample%20pids%2FP01%20Pipe%20FromTo%20Nozzles%2FP01V01-VER.EX01.xml/raw?ref=master",
+    "path": "dexpi 1.3/example pids/P01 Pipe FromTo Nozzles/P01V01-VER.EX01.xml",
+    "sha256": "1c88ab8aec8ac9d721b454aa9dc1fe669e6efbea871a36e39beeb9a5fdac4076",
+    "bytes": 3684,
+    "ok": true
+  },
+  {
+    "name": "P02V01-VER.EX01.xml",
+    "url": "https://gitlab.com/api/v4/projects/dexpi%2FTrainingTestCases/repository/files/dexpi%201.3%2Fexample%20pids%2FP02%20Pipe%20From%20OPC%20to%20Nozzle%2FP02V01-VER.EX01.xml/raw?ref=master",
+    "path": "dexpi 1.3/example pids/P02 Pipe From OPC to Nozzle/P02V01-VER.EX01.xml",
+    "sha256": "6084e2bbaba4f018551f2db6744fba2976b95a15de172e6cf5f342df009f6611",
+    "bytes": 4259,
+    "ok": true
+  },
+  {
+    "name": "C08_sheet_A.xml",
+    "sha256": "dd4e87578eb214406e6f69fa26a43a067c568426def14be2ed5f353ce8f62cd6",
+    "bytes": 1467,
+    "ok": true,
+    "note": "C01 OPC-derived capability fixture; upstream C08 has 0 XML"
+  },
+  {
+    "name": "C08_sheet_B.xml",
+    "sha256": "5311554831d7dc1c287630a2ee12ae109731bc56c0faccc867d8d0e12c7488cf",
+    "bytes": 1460,
+    "ok": true,
+    "note": "C01 OPC-derived capability fixture; upstream C08 has 0 XML"
+  },
+  {
+    "name": "C08",
+    "ok": true,
+    "xml_count": 2,
+    "note": "capability fixtures from C01 OPCs"
+  }
+]

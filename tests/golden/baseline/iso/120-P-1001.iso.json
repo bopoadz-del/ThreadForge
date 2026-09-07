@@ -1,0 +1,223 @@
+{
+  "line_number": "120-P-1001",
+  "line_id": "LINE-120-P-1001",
+  "from": "120-VEPR-2010-N1",
+  "to": "124-PKSA-0500-N1",
+  "nominal_bore": "6\"",
+  "service": "PROCESS-REV",
+  "material": "CS",
+  "components": [
+    "120-P-1001-ELB-01",
+    "120-P-1001-FLG-01",
+    "120-P-1001-GSK-01",
+    "120-P-1001-PIPE-01",
+    "120-P-1001-RED-01"
+  ],
+  "bom": [
+    {
+      "tag": "120-P-1001-ELB-01",
+      "type": "ELBOW"
+    },
+    {
+      "tag": "120-P-1001-FLG-01",
+      "type": "FLANGE"
+    },
+    {
+      "tag": "120-P-1001-GSK-01",
+      "type": "GASKET"
+    },
+    {
+      "tag": "120-P-1001-PIPE-01",
+      "type": "PIPE"
+    },
+    {
+      "tag": "120-P-1001-RED-01",
+      "type": "REDUCER"
+    }
+  ],
+  "route": {
+    "line_id": "LINE-120-P-1001",
+    "line_number": "120-P-1001",
+    "from": "120-VEPR-2010-N1",
+    "to": "124-PKSA-0500-N1",
+    "nominal_bore": "6\"",
+    "points": [
+      {
+        "x": 20.0,
+        "y": 15.0,
+        "z": 10.0
+      },
+      {
+        "x": 60.0,
+        "y": 15.0,
+        "z": 10.0
+      },
+      {
+        "x": 60.0,
+        "y": 15.0,
+        "z": 7.5
+      }
+    ],
+    "length_m": 42.5,
+    "supports": [
+      {
+        "id": "SUP-001",
+        "type": "placeholder",
+        "xyz": [
+          23.0,
+          15.0,
+          10.0
+        ],
+        "station_m": 3.0,
+        "note": "Heuristic interval support \u2014 not engineered"
+      },
+      {
+        "id": "SUP-002",
+        "type": "placeholder",
+        "xyz": [
+          26.0,
+          15.0,
+          10.0
+        ],
+        "station_m": 6.0,
+        "note": "Heuristic interval support \u2014 not engineered"
+      },
+      {
+        "id": "SUP-003",
+        "type": "placeholder",
+        "xyz": [
+          29.0,
+          15.0,
+          10.0
+        ],
+        "station_m": 9.0,
+        "note": "Heuristic interval support \u2014 not engineered"
+      },
+      {
+        "id": "SUP-004",
+        "type": "placeholder",
+        "xyz": [
+          32.0,
+          15.0,
+          10.0
+        ],
+        "station_m": 12.0,
+        "note": "Heuristic interval support \u2014 not engineered"
+      },
+      {
+        "id": "SUP-005",
+        "type": "placeholder",
+        "xyz": [
+          35.0,
+          15.0,
+          10.0
+        ],
+        "station_m": 15.0,
+        "note": "Heuristic interval support \u2014 not engineered"
+      },
+      {
+        "id": "SUP-006",
+        "type": "placeholder",
+        "xyz": [
+          38.0,
+          15.0,
+          10.0
+        ],
+        "station_m": 18.0,
+        "note": "Heuristic interval support \u2014 not engineered"
+      },
+      {
+        "id": "SUP-007",
+        "type": "placeholder",
+        "xyz": [
+          41.0,
+          15.0,
+          10.0
+        ],
+        "station_m": 21.0,
+        "note": "Heuristic interval support \u2014 not engineered"
+      },
+      {
+        "id": "SUP-008",
+        "type": "placeholder",
+        "xyz": [
+          44.0,
+          15.0,
+          10.0
+        ],
+        "station_m": 24.0,
+        "note": "Heuristic interval support \u2014 not engineered"
+      },
+      {
+        "id": "SUP-009",
+        "type": "placeholder",
+        "xyz": [
+          47.0,
+          15.0,
+          10.0
+        ],
+        "station_m": 27.0,
+        "note": "Heuristic interval support \u2014 not engineered"
+      },
+      {
+        "id": "SUP-010",
+        "type": "placeholder",
+        "xyz": [
+          50.0,
+          15.0,
+          10.0
+        ],
+        "station_m": 30.0,
+        "note": "Heuristic interval support \u2014 not engineered"
+      },
+      {
+        "id": "SUP-011",
+        "type": "placeholder",
+        "xyz": [
+          53.0,
+          15.0,
+          10.0
+        ],
+        "station_m": 33.0,
+        "note": "Heuristic interval support \u2014 not engineered"
+      },
+      {
+        "id": "SUP-012",
+        "type": "placeholder",
+        "xyz": [
+          56.0,
+          15.0,
+          10.0
+        ],
+        "station_m": 36.0,
+        "note": "Heuristic interval support \u2014 not engineered"
+      },
+      {
+        "id": "SUP-013",
+        "type": "placeholder",
+        "xyz": [
+          59.0,
+          15.0,
+          10.0
+        ],
+        "station_m": 39.0,
+        "note": "Heuristic interval support \u2014 not engineered"
+      },
+      {
+        "id": "SUP-014",
+        "type": "placeholder",
+        "xyz": [
+          60.0,
+          15.0,
+          8.0
+        ],
+        "station_m": 42.0,
+        "note": "Heuristic interval support \u2014 not engineered"
+      }
+    ],
+    "accuracy": "heuristic_manhattan",
+    "limits": "Orthogonal stub only; no clash solids, no stress, no slope rules. Coordinates from nozzle XYZ or volume centroids."
+  },
+  "drawing_format": "iso-package-v1",
+  "note": "Structured iso package \u2014 not a certified ISOGEN drawing"
+}

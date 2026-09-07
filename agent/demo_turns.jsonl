@@ -1,0 +1,11 @@
+{"comment": "ThreadForge demo agent turns — deterministic, no LLM"}
+{"tool": "ingest_dexpi", "arguments": {}}
+{"tool": "query_graph", "arguments": {"tag_id": "120-VEPR-2010"}}
+{"tool": "dexpi_coverage", "arguments": {}}
+{"tool": "build_work_packages", "arguments": {}}
+{"tool": "build_test_packs", "arguments": {}}
+{"tool": "attach_schedule", "arguments": {"path": "fixtures/sample_schedule.json"}}
+{"tool": "look_ahead", "arguments": {"weeks": 3, "disciplines": ["PIP", "INS", "ELE", "TEL"], "export_csv": true}}
+{"tool": "co_activity_check", "arguments": {"export_report": true}}
+{"tool": "export_artefacts", "arguments": {}}
+{"tool": "maturity_check", "arguments": {"required": "IFC", "action": "export"}}

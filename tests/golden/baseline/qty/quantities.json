@@ -1,0 +1,34 @@
+{
+  "rows": [
+    {
+      "line_id": "LINE-120-P-1001",
+      "line_number": "120-P-1001",
+      "nominal_bore": "6\"",
+      "service": "PROCESS-REV",
+      "component_count": 5,
+      "length_m": 42.5,
+      "length_source": "manhattan_heuristic",
+      "status": "ready"
+    },
+    {
+      "line_id": "LINE-124-LPWP-2505",
+      "line_number": "124-LPWP-2505",
+      "nominal_bore": "3\"",
+      "service": "LPG",
+      "component_count": 4,
+      "length_m": 21.5,
+      "length_source": "manhattan_heuristic",
+      "status": "ready"
+    },
+    {
+      "line_id": "LINE-120-P-1002",
+      "line_number": "120-P-1002",
+      "nominal_bore": "4\"",
+      "service": "DRAIN",
+      "component_count": 2,
+      "length_m": 0.0,
+      "length_source": "manhattan_heuristic",
+      "status": "ready"
+    }
+  ]
+}

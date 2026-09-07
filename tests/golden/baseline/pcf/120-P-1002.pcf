@@ -1,0 +1,21 @@
+=== ThreadForge best-effort PCF subset (not Autodesk-certified) ===
+ISOGEN-FILES             ISOGEN.FLS
+UNITS-BORE               MM
+UNITS-CO-ORDS            MM
+UNITS-BOLT-LENGTH        MM
+UNITS-WEIGHT             KGS
+PIPELINE-REFERENCE       120-P-1002
+PIPING-SPEC              CS
+ATTRIBUTE0               SERVICE DRAIN
+ATTRIBUTE1               MATERIAL CS
+ATTRIBUTE2               FROM 120-VEPR-2010-N2
+ATTRIBUTE3               TO 120-VEPR-2010-N3
+    
+PIPE
+    END-POINT             0 0 0 100.0
+    END-POINT             1000 0 0 100.0
+    
+MATERIALS-LIST           120-P-1002-VALVE-01 VALVE
+MATERIALS-LIST           120-P-1002-PIPE-01 PIPE
+    
+END-OF-FILE

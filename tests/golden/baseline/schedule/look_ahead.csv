@@ -1,0 +1,6 @@
+id,name,wp_id,discipline,start,finish,man_hours,status
+ACT-PIP-120-01,PIP-EK-01 Area 120 process piping,WP-VOL-A-PIP,PIP,2027-02-15,2027-03-20,420.0,in_progress
+ACT-INS-120-01,INS-EK-01 instruments Area 120,WP-VOL-A-INS,INS,2027-03-01,2027-03-25,96.0,planned
+ACT-PIP-124-01,PIP package 124 LPG lines,WP-VOL-B-PIP,PIP,2027-03-05,2027-04-01,310.0,planned
+ACT-PIP-BL-01,PIP battery limit corridor,WP-VOL-C-PIP,PIP,2027-03-08,2027-03-22,80.0,planned
+ACT-ELE-01,ELE Area 124 power,WP-VOL-B-EQP,ELE,2027-03-10,2027-03-30,120.0,planned

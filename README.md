@@ -172,7 +172,7 @@ PYTHONPATH=src python demos/run_demo.py
 | `look_ahead` | Window + discipline filter + optional CSV |
 | `co_activity_check` | Time ∩ volume clashes + report |
 | `maturity_check` | Gate IFC-grade export |
-| `run_pipeline_stage` | upload…outputs |
+| `run_pipeline_stage` | Run upload…outputs stages |
 | `export_artefacts` | Write PCF/ISO/GA/routes under `output/` |
 | `dexpi_coverage` | Supported elements vs WALL gaps |
 

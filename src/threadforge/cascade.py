@@ -17,8 +17,9 @@ from threadforge.models import (
     StageStatus,
 )
 
+# Downstream artefacts dirtied when a tag or line changes
 TAG_DIRTY_KINDS = [
-    ArtefactKind.ROUTES,
+    ArtefactKind.ROUTES,  # geometry first — dependents must re-read graph.routes
     ArtefactKind.SUPPORTS,
     ArtefactKind.ISOMETRIC,
     ArtefactKind.QUANTITIES,
@@ -31,7 +32,7 @@ TAG_DIRTY_KINDS = [
 ]
 
 LINE_DIRTY_KINDS = [
-    ArtefactKind.ROUTES,
+    ArtefactKind.ROUTES,  # mark routes dirty before PCF/ISO/qty dependents
     ArtefactKind.SUPPORTS,
     ArtefactKind.ISOMETRIC,
     ArtefactKind.QUANTITIES,
@@ -100,15 +101,19 @@ class CascadeEngine:
             if event.entity_id in art.related_tags or event.entity_id in art.related_lines:
                 related = True
             if art.kind in kinds and (
-                related or not art.related_tags and not art.related_lines
+                related
+                or not art.related_tags
+                and not art.related_lines  # global artefacts
             ):
                 artefact_ids.append(art.id)
 
+        # WPs that contain the changed tag / line components
         affected_wps: list[str] = []
         for wp in self.graph.work_packages.values():
             if event.entity_id in wp.tags:
                 affected_wps.append(wp.id)
             else:
+                # line change: if any WP tag belongs to that line
                 pipe = self.graph.pipelines.get(event.entity_id)
                 if pipe:
                     line_tags = set(pipe.component_tags)
@@ -119,13 +124,17 @@ class CascadeEngine:
                     if line_tags.intersection(wp.tags):
                         affected_wps.append(wp.id)
 
+        # Also dirty WPs by volume if tag has volume
         tag = self.graph.tags.get(event.entity_id)
         if tag and tag.volume_id:
             for wp in self.graph.work_packages.values():
                 if wp.volume_id == tag.volume_id and wp.id not in affected_wps:
                     affected_wps.append(wp.id)
 
-        affected_stages = [JobStage.PIPING, JobStage.OUTPUTS]
+        affected_stages = [
+            JobStage.PIPING,
+            JobStage.OUTPUTS,
+        ]
         if event.entity_type in ("tag", "equipment", "pipeline", "line"):
             affected_stages = [JobStage.TOPOLOGY, JobStage.PIPING, JobStage.OUTPUTS]
 
@@ -138,6 +147,7 @@ class CascadeEngine:
         )
 
     def _apply_dirty(self, dirty: DirtySet) -> None:
+        # Shared geometry invalidated before any dependent regenerates.
         if ArtefactKind.ROUTES in dirty.artefact_kinds:
             self.graph.routes.clear()
         for aid in dirty.artefact_ids:
@@ -154,6 +164,7 @@ class CascadeEngine:
                     st.status = StageStatus.DIRTY
                     st.updated_at = datetime.now(timezone.utc)
                     st.message = f"Dirtied by {dirty.change_id}"
+            # Cascade further downstream
             for stage in list(dirty.affected_stages):
                 for down in STAGE_CASCADE.get(stage, []):
                     st = self.job.stage_state(down)

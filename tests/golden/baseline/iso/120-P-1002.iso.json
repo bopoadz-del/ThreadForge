@@ -1,0 +1,43 @@
+{
+  "line_number": "120-P-1002",
+  "line_id": "LINE-120-P-1002",
+  "from": "120-VEPR-2010-N2",
+  "to": "120-VEPR-2010-N3",
+  "nominal_bore": "4\"",
+  "service": "DRAIN",
+  "material": "CS",
+  "components": [
+    "120-P-1002-VALVE-01",
+    "120-P-1002-PIPE-01"
+  ],
+  "bom": [
+    {
+      "tag": "120-P-1002-VALVE-01",
+      "type": "VALVE"
+    },
+    {
+      "tag": "120-P-1002-PIPE-01",
+      "type": "PIPE"
+    }
+  ],
+  "route": {
+    "line_id": "LINE-120-P-1002",
+    "line_number": "120-P-1002",
+    "from": "120-VEPR-2010-N2",
+    "to": "120-VEPR-2010-N3",
+    "nominal_bore": "4\"",
+    "points": [
+      {
+        "x": 20.0,
+        "y": 15.0,
+        "z": 10.0
+      }
+    ],
+    "length_m": 0.0,
+    "supports": [],
+    "accuracy": "heuristic_manhattan",
+    "limits": "Orthogonal stub only; no clash solids, no stress, no slope rules. Coordinates from nozzle XYZ or volume centroids."
+  },
+  "drawing_format": "iso-package-v1",
+  "note": "Structured iso package \u2014 not a certified ISOGEN drawing"
+}

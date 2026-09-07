@@ -44,6 +44,7 @@ def assess_maturity(graph: TopologyGraph, job: Optional[JobPipeline] = None) -> 
     ):
         level = MaturityLevel.L4_90
         score_bits.append("joins+WPs")
+    # IFC only if explicitly advanced + no unmatched + battery limits reviewed
     if (
         level == MaturityLevel.L4_90
         and summary["battery_limit_count"] > 0
@@ -58,6 +59,7 @@ def assess_maturity(graph: TopologyGraph, job: Optional[JobPipeline] = None) -> 
     if job is not None:
         job.current_maturity = level
 
+    # Data-derived gate reasons (not sticky flags)
     fabricated = [
         lid
         for lid, r in (graph.routes or {}).items()
@@ -76,7 +78,7 @@ def assess_maturity(graph: TopologyGraph, job: Optional[JobPipeline] = None) -> 
         "fabricated_count": len(fabricated),
         "unmatched_opc_count": len(unmatched_opc),
         "design_pressure_present": design_pressure_ok,
-        "clash_hard": 0,
+        "clash_hard": 0,  # filled by caller when clash run; default 0 if routes clean
         "factors": score_bits,
     }
     if fabricated:
@@ -103,6 +105,11 @@ def maturity_check(
     action: str = "export",
     graph: Optional[Any] = None,
 ) -> dict[str, Any]:
+    """
+    Check whether current maturity allows an action.
+    Refuses IFC-grade export if maturity < IFC.
+    Refuses IFC/PCF export when any line has fabricated geometry.
+    """
     allowed = meets_or_exceeds(current, required)
     result: dict[str, Any] = {
         "allowed": allowed,

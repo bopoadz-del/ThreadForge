@@ -1,0 +1,53 @@
+{
+  "sheets": [
+    {
+      "id": "SHEET-001",
+      "name": "P&ID Area 120",
+      "index": 1,
+      "total": 2,
+      "source_xml": null,
+      "source_svg": null,
+      "notes": [
+        "General notes: synthetic demo sheet for ThreadForge."
+      ],
+      "legend": {
+        "EQ": "Equipment",
+        "PIP": "Piping",
+        "INS": "Instrumentation"
+      },
+      "layers": [
+        "Equipment",
+        "Piping",
+        "Instruments"
+      ],
+      "metadata": {}
+    },
+    {
+      "id": "SHEET-002",
+      "name": "P&ID Area 124",
+      "index": 2,
+      "total": 2,
+      "source_xml": null,
+      "source_svg": null,
+      "notes": [
+        "Second sheet \u2014 package skid area."
+      ],
+      "legend": {},
+      "layers": [
+        "Equipment",
+        "Piping"
+      ],
+      "metadata": {}
+    }
+  ],
+  "pipelines": [
+    "120-P-1001",
+    "124-LPWP-2505",
+    "120-P-1002"
+  ],
+  "systems": [
+    "Process Separation 120",
+    "LPG Package 124"
+  ],
+  "note": "DLB inventory from topology (not a full EDMS package)"
+}

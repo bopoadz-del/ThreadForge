@@ -1,0 +1,45 @@
+{
+  "equipment_count": 3,
+  "volume_count": 3,
+  "volumes": [
+    {
+      "id": "VOL-A",
+      "name": "Area 120 Process",
+      "xmin": 0.0,
+      "ymin": 0.0,
+      "zmin": 0.0,
+      "xmax": 40.0,
+      "ymax": 30.0,
+      "zmax": 20.0,
+      "color": "blue",
+      "site": "onshore",
+      "plot_plan_ref": "PP-120"
+    },
+    {
+      "id": "VOL-B",
+      "name": "Area 124 Package",
+      "xmin": 40.0,
+      "ymin": 0.0,
+      "zmin": 0.0,
+      "xmax": 80.0,
+      "ymax": 30.0,
+      "zmax": 15.0,
+      "color": "purple",
+      "site": "onshore",
+      "plot_plan_ref": "PP-124"
+    },
+    {
+      "id": "VOL-C",
+      "name": "Battery Limit Corridor",
+      "xmin": 35.0,
+      "ymin": 10.0,
+      "zmin": 0.0,
+      "xmax": 45.0,
+      "ymax": 20.0,
+      "zmax": 12.0,
+      "color": "red",
+      "site": "onshore",
+      "plot_plan_ref": null
+    }
+  ]
+}

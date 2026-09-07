@@ -1,0 +1,280 @@
+{
+  "supports": [
+    {
+      "id": "SUP-001",
+      "type": "placeholder",
+      "xyz": [
+        23.0,
+        15.0,
+        10.0
+      ],
+      "station_m": 3.0,
+      "note": "Heuristic interval support \u2014 not engineered",
+      "line_id": "LINE-120-P-1001",
+      "line_number": "120-P-1001"
+    },
+    {
+      "id": "SUP-002",
+      "type": "placeholder",
+      "xyz": [
+        26.0,
+        15.0,
+        10.0
+      ],
+      "station_m": 6.0,
+      "note": "Heuristic interval support \u2014 not engineered",
+      "line_id": "LINE-120-P-1001",
+      "line_number": "120-P-1001"
+    },
+    {
+      "id": "SUP-003",
+      "type": "placeholder",
+      "xyz": [
+        29.0,
+        15.0,
+        10.0
+      ],
+      "station_m": 9.0,
+      "note": "Heuristic interval support \u2014 not engineered",
+      "line_id": "LINE-120-P-1001",
+      "line_number": "120-P-1001"
+    },
+    {
+      "id": "SUP-004",
+      "type": "placeholder",
+      "xyz": [
+        32.0,
+        15.0,
+        10.0
+      ],
+      "station_m": 12.0,
+      "note": "Heuristic interval support \u2014 not engineered",
+      "line_id": "LINE-120-P-1001",
+      "line_number": "120-P-1001"
+    },
+    {
+      "id": "SUP-005",
+      "type": "placeholder",
+      "xyz": [
+        35.0,
+        15.0,
+        10.0
+      ],
+      "station_m": 15.0,
+      "note": "Heuristic interval support \u2014 not engineered",
+      "line_id": "LINE-120-P-1001",
+      "line_number": "120-P-1001"
+    },
+    {
+      "id": "SUP-006",
+      "type": "placeholder",
+      "xyz": [
+        38.0,
+        15.0,
+        10.0
+      ],
+      "station_m": 18.0,
+      "note": "Heuristic interval support \u2014 not engineered",
+      "line_id": "LINE-120-P-1001",
+      "line_number": "120-P-1001"
+    },
+    {
+      "id": "SUP-007",
+      "type": "placeholder",
+      "xyz": [
+        41.0,
+        15.0,
+        10.0
+      ],
+      "station_m": 21.0,
+      "note": "Heuristic interval support \u2014 not engineered",
+      "line_id": "LINE-120-P-1001",
+      "line_number": "120-P-1001"
+    },
+    {
+      "id": "SUP-008",
+      "type": "placeholder",
+      "xyz": [
+        44.0,
+        15.0,
+        10.0
+      ],
+      "station_m": 24.0,
+      "note": "Heuristic interval support \u2014 not engineered",
+      "line_id": "LINE-120-P-1001",
+      "line_number": "120-P-1001"
+    },
+    {
+      "id": "SUP-009",
+      "type": "placeholder",
+      "xyz": [
+        47.0,
+        15.0,
+        10.0
+      ],
+      "station_m": 27.0,
+      "note": "Heuristic interval support \u2014 not engineered",
+      "line_id": "LINE-120-P-1001",
+      "line_number": "120-P-1001"
+    },
+    {
+      "id": "SUP-010",
+      "type": "placeholder",
+      "xyz": [
+        50.0,
+        15.0,
+        10.0
+      ],
+      "station_m": 30.0,
+      "note": "Heuristic interval support \u2014 not engineered",
+      "line_id": "LINE-120-P-1001",
+      "line_number": "120-P-1001"
+    },
+    {
+      "id": "SUP-011",
+      "type": "placeholder",
+      "xyz": [
+        53.0,
+        15.0,
+        10.0
+      ],
+      "station_m": 33.0,
+      "note": "Heuristic interval support \u2014 not engineered",
+      "line_id": "LINE-120-P-1001",
+      "line_number": "120-P-1001"
+    },
+    {
+      "id": "SUP-012",
+      "type": "placeholder",
+      "xyz": [
+        56.0,
+        15.0,
+        10.0
+      ],
+      "station_m": 36.0,
+      "note": "Heuristic interval support \u2014 not engineered",
+      "line_id": "LINE-120-P-1001",
+      "line_number": "120-P-1001"
+    },
+    {
+      "id": "SUP-013",
+      "type": "placeholder",
+      "xyz": [
+        59.0,
+        15.0,
+        10.0
+      ],
+      "station_m": 39.0,
+      "note": "Heuristic interval support \u2014 not engineered",
+      "line_id": "LINE-120-P-1001",
+      "line_number": "120-P-1001"
+    },
+    {
+      "id": "SUP-014",
+      "type": "placeholder",
+      "xyz": [
+        60.0,
+        15.0,
+        8.0
+      ],
+      "station_m": 42.0,
+      "note": "Heuristic interval support \u2014 not engineered",
+      "line_id": "LINE-120-P-1001",
+      "line_number": "120-P-1001"
+    },
+    {
+      "id": "SUP-001",
+      "type": "placeholder",
+      "xyz": [
+        57.0,
+        15.0,
+        7.5
+      ],
+      "station_m": 3.0,
+      "note": "Heuristic interval support \u2014 not engineered",
+      "line_id": "LINE-124-LPWP-2505",
+      "line_number": "124-LPWP-2505"
+    },
+    {
+      "id": "SUP-002",
+      "type": "placeholder",
+      "xyz": [
+        54.0,
+        15.0,
+        7.5
+      ],
+      "station_m": 6.0,
+      "note": "Heuristic interval support \u2014 not engineered",
+      "line_id": "LINE-124-LPWP-2505",
+      "line_number": "124-LPWP-2505"
+    },
+    {
+      "id": "SUP-003",
+      "type": "placeholder",
+      "xyz": [
+        51.0,
+        15.0,
+        7.5
+      ],
+      "station_m": 9.0,
+      "note": "Heuristic interval support \u2014 not engineered",
+      "line_id": "LINE-124-LPWP-2505",
+      "line_number": "124-LPWP-2505"
+    },
+    {
+      "id": "SUP-004",
+      "type": "placeholder",
+      "xyz": [
+        48.0,
+        15.0,
+        7.5
+      ],
+      "station_m": 12.0,
+      "note": "Heuristic interval support \u2014 not engineered",
+      "line_id": "LINE-124-LPWP-2505",
+      "line_number": "124-LPWP-2505"
+    },
+    {
+      "id": "SUP-005",
+      "type": "placeholder",
+      "xyz": [
+        45.0,
+        15.0,
+        7.5
+      ],
+      "station_m": 15.0,
+      "note": "Heuristic interval support \u2014 not engineered",
+      "line_id": "LINE-124-LPWP-2505",
+      "line_number": "124-LPWP-2505"
+    },
+    {
+      "id": "SUP-006",
+      "type": "placeholder",
+      "xyz": [
+        42.0,
+        15.0,
+        7.5
+      ],
+      "station_m": 18.0,
+      "note": "Heuristic interval support \u2014 not engineered",
+      "line_id": "LINE-124-LPWP-2505",
+      "line_number": "124-LPWP-2505"
+    },
+    {
+      "id": "SUP-007",
+      "type": "placeholder",
+      "xyz": [
+        40.0,
+        15.0,
+        6.5
+      ],
+      "station_m": 21.0,
+      "note": "Heuristic interval support \u2014 not engineered",
+      "line_id": "LINE-124-LPWP-2505",
+      "line_number": "124-LPWP-2505"
+    }
+  ],
+  "count": 21,
+  "spacing_m": 3.0,
+  "note": "Placeholder supports at intervals \u2014 not load-rated"
+}

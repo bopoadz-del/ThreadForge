@@ -1,0 +1,33 @@
+=== ThreadForge best-effort PCF subset (not Autodesk-certified) ===
+ISOGEN-FILES             ISOGEN.FLS
+UNITS-BORE               MM
+UNITS-CO-ORDS            MM
+UNITS-BOLT-LENGTH        MM
+UNITS-WEIGHT             KGS
+PIPELINE-REFERENCE       124-LPWP-2505
+PIPING-SPEC              SS
+ATTRIBUTE0               SERVICE LPG
+ATTRIBUTE1               MATERIAL SS
+ATTRIBUTE2               FROM 124-PKSA-0500-N1
+ATTRIBUTE3               TO 124-LPNP-2508
+    
+PIPE
+    END-POINT             60000 15000 7500 80.0
+    END-POINT             40000 15000 7500 80.0
+    
+PIPE
+    END-POINT             40000 15000 7500 80.0
+    END-POINT             40000 15000 6000 80.0
+    
+ELBOW
+    END-POINT             60000 15000 7500 80.0
+    END-POINT             40000 15000 6000 80.0
+    CENTRE-POINT          40000 15000 7500
+    SKEY                  EL
+    
+MATERIALS-LIST           124-LPWP-2505-BlindFlange FLANGE
+MATERIALS-LIST           124-LPWP-2505-ELB-01 ELBOW
+MATERIALS-LIST           124-LPWP-2505-TEE-01 TEE
+MATERIALS-LIST           124-LPWP-2505-PIPE-01 PIPE
+    
+END-OF-FILE

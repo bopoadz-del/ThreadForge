@@ -1,0 +1,33 @@
+{
+  "flagged_count": 1,
+  "flagged": [
+    {
+      "wp_a": "WP-VOL-B-EQP",
+      "wp_b": "WP-VOL-B-PIP",
+      "volume_id": "VOL-B",
+      "volume": {
+        "id": "VOL-B",
+        "name": "Area 124 Package",
+        "bounds": {
+          "xmin": 40.0,
+          "ymin": 0.0,
+          "zmin": 0.0,
+          "xmax": 80.0,
+          "ymax": 30.0,
+          "zmax": 15.0
+        },
+        "site": "onshore"
+      },
+      "overlap_start": "2027-03-10",
+      "overlap_finish": "2027-03-30",
+      "disciplines": [
+        "EQP",
+        "PIP"
+      ]
+    }
+  ],
+  "volumes_involved": [
+    "VOL-B"
+  ],
+  "message": "Co-activity \u2014 1 WP pairs flagged"
+}

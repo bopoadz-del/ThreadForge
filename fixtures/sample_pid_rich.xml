@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Richer synthetic Proteus/DEXPI-shaped fixture — multi-sheet, instruments, battery limits -->
+<!-- Invented tags only; NOT real client / vendor plant data -->
+<PlantModel Name="TF-RICH-PLANT" Format="DEXPI-lite-v2" Units="mm">
+  <Drawing ID="SHEET-101" Name="P&amp;ID Unit 200 Feed" Index="1">
+    <Note>Feed / separator area — synthetic.</Note>
+    <LegendItem Key="EQ" Value="Equipment"/>
+    <LegendItem Key="PIP" Value="Piping"/>
+    <LegendItem Key="INS" Value="Instrumentation"/>
+    <LegendItem Key="BL" Value="Battery Limit"/>
+    <Layer Name="Equipment"/>
+    <Layer Name="Piping"/>
+    <Layer Name="Instruments"/>
+    <Layer Name="BatteryLimits"/>
+  </Drawing>
+  <Drawing ID="SHEET-102" Name="P&amp;ID Unit 210 Compression" Index="2">
+    <Note>Compressor package sheet.</Note>
+    <Layer Name="Equipment"/>
+    <Layer Name="Piping"/>
+    <Layer Name="Instruments"/>
+  </Drawing>
+  <Sheet ID="SHEET-103" Name="P&amp;ID Unit 220 Export" Index="3">
+    <Note>Export / battery limit sheet.</Note>
+    <Layer Name="Piping"/>
+    <Layer Name="BatteryLimits"/>
+  </Sheet>
+
+  <DesignVolume ID="VOL-200" Name="Unit 200 Feed" Xmin="0" Ymin="0" Zmin="0" Xmax="50" Ymax="40" Zmax="25" Color="#2E86AB" Site="onshore" PlotPlan="PP-200"/>
+  <DesignVolume ID="VOL-210" Name="Unit 210 Compression" Xmin="50" Ymin="0" Zmin="0" Xmax="100" Ymax="40" Zmax="20" Color="#A23B72" Site="onshore" PlotPlan="PP-210"/>
+  <DesignVolume ID="VOL-220" Name="Unit 220 Export BL" Xmin="100" Ymin="10" Zmin="0" Xmax="130" Ymax="30" Zmax="15" Color="#F18F01" Site="onshore" PlotPlan="PP-220"/>
+  <Volume ID="VOL-RACK" Name="Pipe Rack Corridor" Xmin="45" Ymin="15" Zmin="5" Xmax="105" Ymax="25" Zmax="12" Color="#C73E1D" Site="onshore"/>
+
+  <!-- ProcessEquipment (DEXPI-ish alias) -->
+  <ProcessEquipment ID="200-V-101" TagName="200-V-101" Discipline="EQP" SheetID="SHEET-101"
+             StdName="200-V-101" PrimaryCode="200-V-101" CCSBase="V" CCSTypeCode="V" Sequence="101"
+             ComponentClass="EQ" Description="INLET SEPARATOR" Service="FEED"
+             Asset3D="V101" ModelRef="V101" VolumeID="VOL-200">
+    <Description>Inlet three-phase separator</Description>
+    <Bounds Xmin="120" Ymin="80" Xmax="220" Ymax="280"/>
+    <Nozzle ID="200-V-101-N1" Tag="N1" Name="N1" Size="8&quot;" Rating="150#" Facing="RF" Orientation="TOP" X="15" Y="20" Z="18"/>
+    <Nozzle ID="200-V-101-N2" Tag="N2" Name="N2" Size="6&quot;" Rating="150#" Facing="RF" Orientation="BOTTOM" X="15" Y="20" Z="2"/>
+    <Nozzle ID="200-V-101-N3" Tag="N3" Name="N3" Size="4&quot;" Rating="150#" Facing="RF" Orientation="SIDE" X="5" Y="20" Z="10"/>
+    <Nozzle ID="200-V-101-N4" Tag="N4" Name="N4" Size="3&quot;" Rating="150#" Facing="RF" Orientation="SIDE" X="25" Y="20" Z="10"/>
+  </ProcessEquipment>
+
+  <Equipment ID="200-P-101A" TagName="200-P-101A" Discipline="EQP" SheetID="SHEET-101"
+             StdName="200-P-101A" PrimaryCode="200-P-101A" CCSBase="P" CCSTypeCode="P" Sequence="101A"
+             ComponentClass="EQ" Description="FEED PUMP A" Service="FEED"
+             Asset3D="P101A" VolumeID="VOL-200">
+    <Extent Xmin="300" Ymin="100" Xmax="360" Ymax="160"/>
+    <Nozzle ID="200-P-101A-N1" Tag="SUCTION" Name="N1" Size="6&quot;" Rating="150#" Facing="RF" Orientation="END" X="18" Y="12" Z="1"/>
+    <Nozzle ID="200-P-101A-N2" Tag="DISCHARGE" Name="N2" Size="4&quot;" Rating="300#" Facing="RF" Orientation="END" X="22" Y="12" Z="1.5"/>
+  </Equipment>
+
+  <Equipment ID="210-C-201" TagName="210-C-201" Discipline="EQP" SheetID="SHEET-102"
+             StdName="210-C-201" PrimaryCode="210-C-201" CCSBase="C" CCSTypeCode="C" Sequence="201"
+             ComponentClass="EQ" Description="COMPRESSOR PACKAGE" Service="GAS"
+             Asset3D="C201" VolumeID="VOL-210">
+    <Extent Xmin="80" Ymin="60" Xmax="250" Ymax="200"/>
+    <Nozzle ID="210-C-201-N1" Tag="INLET" Name="N1" Size="6&quot;" Rating="300#" Facing="RJ" Orientation="END" X="55" Y="20" Z="8"/>
+    <Nozzle ID="210-C-201-N2" Tag="OUTLET" Name="N2" Size="4&quot;" Rating="600#" Facing="RJ" Orientation="END" X="90" Y="20" Z="8"/>
+  </Equipment>
+
+  <Equipment ID="220-BL-001" TagName="220-BL-001" Discipline="PIP" SheetID="SHEET-103"
+             StdName="220-BL-001" PrimaryCode="220-BL-001"
+             ComponentClass="BL" Description="EXPORT BATTERY LIMIT" Service="GAS"
+             VolumeID="VOL-220">
+    <Extent Xmin="10" Ymin="10" Xmax="30" Ymax="30"/>
+    <Nozzle ID="220-BL-001-N1" Tag="N1" Name="N1" Size="4&quot;" Rating="600#" Facing="RJ" Orientation="END" X="110" Y="20" Z="6"/>
+  </Equipment>
+
+  <!-- PipingNetworkSegment (DEXPI element name) -->
+  <PipingNetworkSegment ID="LINE-200-P-1001" LineNumber="200-P-1001"
+            From="200-V-101-N2" To="200-P-101A-N1"
+            NominalBore="6&quot;" Service="FEED" Material="CS" Spec="CS150"
+            SheetID="SHEET-101" VolumeID="VOL-200">
+    <Component ID="200-P-1001-ELB-01" Tag="200-P-1001-ELB-01" Type="ELBOW"/>
+    <Component ID="200-P-1001-FLG-01" Tag="200-P-1001-FLG-01" Type="FLANGE"/>
+    <Component ID="200-P-1001-VALVE-01" Tag="200-P-1001-VALVE-01" Type="VALVE"/>
+    <Component ID="200-P-1001-PIPE-01" Tag="200-P-1001-PIPE-01" Type="PIPE"/>
+  </PipingNetworkSegment>
+
+  <PipingNetworkSegment ID="LINE-200-P-1002" LineNumber="200-P-1002"
+            From="200-P-101A-N2" To="210-C-201-N1"
+            NominalBore="4&quot;" Service="FEED" Material="CS" Spec="CS300"
+            SheetID="SHEET-101" VolumeID="VOL-RACK">
+    <Component ID="200-P-1002-ELB-01" Tag="200-P-1002-ELB-01" Type="ELBOW"/>
+    <Component ID="200-P-1002-ELB-02" Tag="200-P-1002-ELB-02" Type="ELBOW"/>
+    <Component ID="200-P-1002-TEE-01" Tag="200-P-1002-TEE-01" Type="TEE"/>
+    <Component ID="200-P-1002-PIPE-01" Tag="200-P-1002-PIPE-01" Type="PIPE"/>
+    <Component ID="200-P-1002-FLG-01" Tag="200-P-1002-FLG-01" Type="FLANGE"/>
+  </PipingNetworkSegment>
+
+  <PipeLine ID="LINE-210-G-2001" LineNumber="210-G-2001"
+            From="210-C-201-N2" To="220-BL-001-N1"
+            NominalBore="4&quot;" Service="GAS" Material="SS" Spec="SS600"
+            SheetID="SHEET-102" VolumeID="VOL-210">
+    <Component ID="210-G-2001-ELB-01" Tag="210-G-2001-ELB-01" Type="ELBOW"/>
+    <Component ID="210-G-2001-PIPE-01" Tag="210-G-2001-PIPE-01" Type="PIPE"/>
+    <Component ID="210-G-2001-VALVE-01" Tag="210-G-2001-VALVE-01" Type="VALVE"/>
+    <Component ID="210-G-2001-FLG-01" Tag="210-G-2001-FLG-01" Type="FLANGE"/>
+  </PipeLine>
+
+  <PipeLine ID="LINE-200-D-1010" LineNumber="200-D-1010"
+            From="200-V-101-N3" To="200-V-101-N4"
+            NominalBore="3&quot;" Service="DRAIN" Material="CS" Spec="CS150"
+            SheetID="SHEET-101" VolumeID="VOL-200">
+    <Component ID="200-D-1010-VALVE-01" Tag="200-D-1010-VALVE-01" Type="VALVE"/>
+    <Component ID="200-D-1010-PIPE-01" Tag="200-D-1010-PIPE-01" Type="PIPE"/>
+  </PipeLine>
+
+  <!-- Instruments + ProcessInstrumentFunction -->
+  <Instrument ID="200-PT-101" TagName="200-PT-101" Type="PT" MeasuredVariable="Pressure"
+              ConnectedTo="200-V-101" SheetID="SHEET-101"/>
+  <Instrument ID="200-LT-101" TagName="200-LT-101" Type="LT" MeasuredVariable="Level"
+              ConnectedTo="200-V-101" SheetID="SHEET-101"/>
+  <Instrument ID="200-FT-101A" TagName="200-FT-101A" Type="FT" MeasuredVariable="Flow"
+              ConnectedTo="LINE-200-P-1002" SheetID="SHEET-101"/>
+  <ProcessInstrumentFunction ID="210-PT-201" TagName="210-PT-201" Type="PT" MeasuredVariable="Pressure"
+              ConnectedTo="210-C-201" SheetID="SHEET-102"/>
+  <InstrumentationFunction ID="210-TT-201" TagName="210-TT-201" Type="TT" MeasuredVariable="Temperature"
+              ConnectedTo="210-C-201" SheetID="SHEET-102"/>
+  <Instrument ID="220-FT-001" TagName="220-FT-001" Type="FT" MeasuredVariable="Flow"
+              ConnectedTo="LINE-210-G-2001" SheetID="SHEET-103"/>
+
+  <BatteryLimit ID="BL-EXPORT-001" TagID="220-BL-001" Description="Gas export battery limit" Side="downstream"/>
+  <BatteryLimit ID="BL-FEED-001" TagID="200-V-101-N1" Description="Feed inlet interface" Side="upstream"/>
+  <PlantAreaBoundary ID="BL-DRAIN-001" TagID="200-V-101-N3" Description="Closed drain interface" Side="external"/>
+
+  <System ID="SYS-FEED-200" Name="Feed Separation 200" Service="FEED">
+    <BoundaryTag ID="200-V-101"/>
+    <BoundaryTag ID="200-P-101A"/>
+    <BoundaryTag ID="200-V-101-N2"/>
+  </System>
+  <System ID="SYS-GAS-210" Name="Gas Compression 210" Service="GAS">
+    <BoundaryTag ID="210-C-201"/>
+    <BoundaryTag ID="220-BL-001"/>
+  </System>
+</PlantModel>

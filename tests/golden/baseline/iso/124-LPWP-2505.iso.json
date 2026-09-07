@@ -1,0 +1,141 @@
+{
+  "line_number": "124-LPWP-2505",
+  "line_id": "LINE-124-LPWP-2505",
+  "from": "124-PKSA-0500-N1",
+  "to": "124-LPNP-2508",
+  "nominal_bore": "3\"",
+  "service": "LPG",
+  "material": "SS",
+  "components": [
+    "124-LPWP-2505-BlindFlange",
+    "124-LPWP-2505-ELB-01",
+    "124-LPWP-2505-TEE-01",
+    "124-LPWP-2505-PIPE-01"
+  ],
+  "bom": [
+    {
+      "tag": "124-LPWP-2505-BlindFlange",
+      "type": "FLANGE"
+    },
+    {
+      "tag": "124-LPWP-2505-ELB-01",
+      "type": "ELBOW"
+    },
+    {
+      "tag": "124-LPWP-2505-TEE-01",
+      "type": "TEE"
+    },
+    {
+      "tag": "124-LPWP-2505-PIPE-01",
+      "type": "PIPE"
+    }
+  ],
+  "route": {
+    "line_id": "LINE-124-LPWP-2505",
+    "line_number": "124-LPWP-2505",
+    "from": "124-PKSA-0500-N1",
+    "to": "124-LPNP-2508",
+    "nominal_bore": "3\"",
+    "points": [
+      {
+        "x": 60.0,
+        "y": 15.0,
+        "z": 7.5
+      },
+      {
+        "x": 40.0,
+        "y": 15.0,
+        "z": 7.5
+      },
+      {
+        "x": 40.0,
+        "y": 15.0,
+        "z": 6.0
+      }
+    ],
+    "length_m": 21.5,
+    "supports": [
+      {
+        "id": "SUP-001",
+        "type": "placeholder",
+        "xyz": [
+          57.0,
+          15.0,
+          7.5
+        ],
+        "station_m": 3.0,
+        "note": "Heuristic interval support \u2014 not engineered"
+      },
+      {
+        "id": "SUP-002",
+        "type": "placeholder",
+        "xyz": [
+          54.0,
+          15.0,
+          7.5
+        ],
+        "station_m": 6.0,
+        "note": "Heuristic interval support \u2014 not engineered"
+      },
+      {
+        "id": "SUP-003",
+        "type": "placeholder",
+        "xyz": [
+          51.0,
+          15.0,
+          7.5
+        ],
+        "station_m": 9.0,
+        "note": "Heuristic interval support \u2014 not engineered"
+      },
+      {
+        "id": "SUP-004",
+        "type": "placeholder",
+        "xyz": [
+          48.0,
+          15.0,
+          7.5
+        ],
+        "station_m": 12.0,
+        "note": "Heuristic interval support \u2014 not engineered"
+      },
+      {
+        "id": "SUP-005",
+        "type": "placeholder",
+        "xyz": [
+          45.0,
+          15.0,
+          7.5
+        ],
+        "station_m": 15.0,
+        "note": "Heuristic interval support \u2014 not engineered"
+      },
+      {
+        "id": "SUP-006",
+        "type": "placeholder",
+        "xyz": [
+          42.0,
+          15.0,
+          7.5
+        ],
+        "station_m": 18.0,
+        "note": "Heuristic interval support \u2014 not engineered"
+      },
+      {
+        "id": "SUP-007",
+        "type": "placeholder",
+        "xyz": [
+          40.0,
+          15.0,
+          6.5
+        ],
+        "station_m": 21.0,
+        "note": "Heuristic interval support \u2014 not engineered"
+      }
+    ],
+    "accuracy": "heuristic_manhattan",
+    "limits": "Orthogonal stub only; no clash solids, no stress, no slope rules. Coordinates from nozzle XYZ or volume centroids."
+  },
+  "drawing_format": "iso-package-v1",
+  "note": "Structured iso package \u2014 not a certified ISOGEN drawing"
+}

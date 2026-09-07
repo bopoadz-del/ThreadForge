@@ -1,0 +1,29 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<PlantModel>
+  <PlantInformation SchemaVersion="4.1.1" Application="Dexpi" Units="mm" Discipline="PID" />
+  <Drawing Name="C08-UER-1234567" ID="DWG-C08-UER-1234567">
+    <PipeOffPageConnector ID="FlowOutPipeOffPageConnector-1" ComponentClass="FlowOutPipeOffPageConnector" ComponentClassURI="http://sandbox.dexpi.org/rdl/FlowOutPipeOffPageConnector" ComponentName="ARROW_FOR_OUTLET_OF_ESSENTIAL_SUBSTANCES_SHAPE">
+      <ConnectionPoints FlowIn="1" NumPoints="2">
+        <Node ID="FlowOutPipeOffPageConnector-1-DefaultNode" />
+        <Node Type="process" ID="PipingNode-39">
+          <Position>
+            <Location X="378" Y="143" Z="0" />
+            <Axis X="0" Y="0" Z="1" />
+            <Reference X="1" Y="0" Z="0" />
+          </Position>
+        </Node>
+      </ConnectionPoints>
+      <Position>
+        <Location X="378" Y="143" Z="0" />
+        <Axis X="0" Y="0" Z="1" />
+        <Reference X="1" Y="0" Z="0" />
+      </Position>
+      <Scale X="0.7" Y="0.7" />
+      <GenericAttributes Set="DexpiAttributes" Number="3">
+        <GenericAttribute Name="CrossPageConnectionAssignmentClass" Format="string" Value="C08-JOIN-001" />
+        <GenericAttribute Name="TagNameAssignmentClass" Format="string" Value="C08-JOIN-001" />
+        <GenericAttribute Name="PipeConnectorNumberAssignmentClass" Format="string" Value="C08-JOIN-001" />
+      </GenericAttributes>
+    </PipeOffPageConnector>
+  </Drawing>
+</PlantModel>

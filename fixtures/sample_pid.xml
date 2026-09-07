@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Synthetic DEXPI/Proteus-shaped fixture — invented tags, NOT real client data -->
+<PlantModel Name="TF-DEMO-PLANT" Format="DEXPI-lite">
+  <Sheet ID="SHEET-001" Name="P&amp;ID Area 120" Index="1">
+    <Note>General notes: synthetic demo sheet for ThreadForge.</Note>
+    <LegendItem Key="EQ" Value="Equipment"/>
+    <LegendItem Key="PIP" Value="Piping"/>
+    <LegendItem Key="INS" Value="Instrumentation"/>
+    <Layer Name="Equipment"/>
+    <Layer Name="Piping"/>
+    <Layer Name="Instruments"/>
+  </Sheet>
+  <Sheet ID="SHEET-002" Name="P&amp;ID Area 124" Index="2">
+    <Note>Second sheet — package skid area.</Note>
+    <Layer Name="Equipment"/>
+    <Layer Name="Piping"/>
+  </Sheet>
+
+  <DesignVolume ID="VOL-A" Name="Area 120 Process" Xmin="0" Ymin="0" Zmin="0" Xmax="40" Ymax="30" Zmax="20" Color="blue" Site="onshore" PlotPlan="PP-120"/>
+  <DesignVolume ID="VOL-B" Name="Area 124 Package" Xmin="40" Ymin="0" Zmin="0" Xmax="80" Ymax="30" Zmax="15" Color="purple" Site="onshore" PlotPlan="PP-124"/>
+  <DesignVolume ID="VOL-C" Name="Battery Limit Corridor" Xmin="35" Ymin="10" Zmin="0" Xmax="45" Ymax="20" Zmax="12" Color="red" Site="onshore"/>
+
+  <Equipment ID="120-VEPR-2010" TagName="120-VEPR-2010" Discipline="EQP" SheetID="SHEET-001"
+             StdName="120-VEPR-2010" PrimaryCode="120-VEPR-2010" CCSBase="VEPR" CCSTypeCode="VE" Sequence="2010"
+             ComponentClass="EQ" Description="VERTICAL SEPARATOR / DRUM" Service="PROCESS"
+             Asset3D="TS001" ModelRef="TS001" VolumeID="VOL-A">
+    <Extent Xmin="100" Ymin="200" Xmax="180" Ymax="420"/>
+    <Nozzle ID="120-VEPR-2010-N1" Tag="N1" Name="N1" Size="6&quot;" Rating="150#" Facing="RF" Orientation="TOP" X="20" Y="15" Z="10"/>
+    <Nozzle ID="120-VEPR-2010-N2" Tag="N2" Name="N2" Size="4&quot;" Rating="150#" Facing="RF" Orientation="BOTTOM"/>
+    <Nozzle ID="120-VEPR-2010-N3" Tag="N3" Name="N3" Size="2&quot;" Rating="150#" Facing="RF" Orientation="SIDE"/>
+  </Equipment>
+
+  <Equipment ID="124-PKSA-0500" TagName="124-PKSA-0500" Discipline="EQP" SheetID="SHEET-002"
+             StdName="124-PKSA-0500" PrimaryCode="124-PKSA-0500" CCSBase="PKSA" CCSTypeCode="PK" Sequence="0500"
+             ComponentClass="EQ" Description="PACKAGE SKID A" Service="LPG"
+             Asset3D="SKID-0500" VolumeID="VOL-B">
+    <Extent Xmin="50" Ymin="50" Xmax="200" Ymax="150"/>
+    <Nozzle ID="124-PKSA-0500-N1" Tag="N1" Name="N1" Size="3&quot;" Rating="300#" Facing="RJ" Orientation="END" X="60" Y="15" Z="7.5"/>
+  </Equipment>
+
+  <PipeLine ID="LINE-120-P-1001" LineNumber="120-P-1001" From="120-VEPR-2010-N1" To="124-PKSA-0500-N1"
+            NominalBore="6&quot;" Service="PROCESS" Material="CS" SheetID="SHEET-001" VolumeID="VOL-A">
+    <Component ID="120-P-1001-ELB-01" Tag="120-P-1001-ELB-01" Type="ELBOW"/>
+    <Component ID="120-P-1001-FLG-01" Tag="120-P-1001-FLG-01" Type="FLANGE"/>
+    <Component ID="120-P-1001-GSK-01" Tag="120-P-1001-GSK-01" Type="GASKET"/>
+    <Component ID="120-P-1001-PIPE-01" Tag="120-P-1001-PIPE-01" Type="PIPE"/>
+    <Component ID="120-P-1001-RED-01" Tag="120-P-1001-RED-01" Type="REDUCER"/>
+  </PipeLine>
+
+  <PipeLine ID="LINE-124-LPWP-2505" LineNumber="124-LPWP-2505" From="124-PKSA-0500-N1" To="124-LPNP-2508-N1"
+            NominalBore="3&quot;" Service="LPG" Material="SS" SheetID="SHEET-002" VolumeID="VOL-B">
+    <Component ID="124-LPWP-2505-BlindFlange" Tag="124-LPWP-2505 BlindFlange" Type="FLANGE"/>
+    <Component ID="124-LPWP-2505-ELB-01" Tag="124-LPWP-2505-ELB-01" Type="ELBOW"/>
+    <Component ID="124-LPWP-2505-TEE-01" Tag="124-LPWP-2505-TEE-01" Type="TEE"/>
+    <Component ID="124-LPWP-2505-PIPE-01" Tag="124-LPWP-2505-PIPE-01" Type="PIPE"/>
+  </PipeLine>
+
+  <PipeLine ID="LINE-120-P-1002" LineNumber="120-P-1002" From="120-VEPR-2010-N2" To="120-VEPR-2010-N3"
+            NominalBore="4&quot;" Service="DRAIN" Material="CS" SheetID="SHEET-001" VolumeID="VOL-A">
+    <Component ID="120-P-1002-VALVE-01" Tag="120-P-1002-VALVE-01" Type="VALVE"/>
+    <Component ID="120-P-1002-PIPE-01" Tag="120-P-1002-PIPE-01" Type="PIPE"/>
+  </PipeLine>
+
+  <!-- Battery limit tag used as line terminus -->
+  <Equipment ID="124-LPNP-2508" TagName="124-LPNP-2508" Discipline="PIP" SheetID="SHEET-002"
+             StdName="124-LPNP-2508" PrimaryCode="124-LPNP-2508"
+             ComponentClass="BL" Description="BATTERY LIMIT NOZZLE" Service="LPG"
+             VolumeID="VOL-C">
+    <Extent Xmin="10" Ymin="10" Xmax="20" Ymax="20"/>
+    <Nozzle ID="124-LPNP-2508-N1" Tag="N1" Name="N1" Size="3&quot;" Rating="300#" Facing="RJ" Orientation="END" X="40" Y="15" Z="6"/>
+  </Equipment>
+
+  <Instrument ID="120-PT-2010" TagName="120-PT-2010" Type="PT" MeasuredVariable="Pressure"
+              ConnectedTo="120-VEPR-2010" SheetID="SHEET-001"/>
+  <Instrument ID="120-LT-2010" TagName="120-LT-2010" Type="LT" MeasuredVariable="Level"
+              ConnectedTo="120-VEPR-2010" SheetID="SHEET-001"/>
+  <Instrument ID="124-FT-0500" TagName="124-FT-0500" Type="FT" MeasuredVariable="Flow"
+              ConnectedTo="LINE-124-LPWP-2505" SheetID="SHEET-002"/>
+
+  <BatteryLimit ID="BL-001" TagID="124-LPNP-2508" Description="LPG export battery limit" Side="downstream"/>
+  <BatteryLimit ID="BL-002" TagID="120-VEPR-2010-N3" Description="Vent / flare interface" Side="external"/>
+
+  <System ID="SYS-PROCESS-120" Name="Process Separation 120" Service="PROCESS">
+    <BoundaryTag ID="120-VEPR-2010"/>
+    <BoundaryTag ID="120-VEPR-2010-N1"/>
+    <BoundaryTag ID="120-VEPR-2010-N2"/>
+  </System>
+  <System ID="SYS-LPG-124" Name="LPG Package 124" Service="LPG">
+    <BoundaryTag ID="124-PKSA-0500"/>
+    <BoundaryTag ID="124-LPNP-2508"/>
+    <BoundaryTag ID="124-LPWP-2505-BlindFlange"/>
+  </System>
+</PlantModel>
