@@ -1,0 +1,65 @@
+name: ci
+on:
+  push:
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: |
+          python -m pip install -U pip
+          pip install -e ".[dev,ifc,dxf,xsd,server]"
+      - name: Ruff
+        run: ruff check src tests scripts
+      - name: Mypy
+        run: mypy --strict src
+      - name: Pytest
+        run: pytest -q
+      - name: Acceptance
+        run: python scripts/acceptance.py
+      - name: OpenAPI committed
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from threadforge.server import export_openapi
+          import json
+          fresh = json.loads(export_openapi(Path("/tmp/openapi-fresh.json")).read_text())
+          committed = json.loads(Path("openapi.json").read_text())
+          assert fresh["info"]["title"] == committed["info"]["title"]
+          print("openapi ok")
+          PY
+      - name: Golden baseline PCF fails contiguity reader
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from threadforge.pcf_reader import parse_pcf, assert_contiguous, overlaps_pipe_elbow, PCFParseError
+          doc = parse_pcf(Path("tests/golden/baseline/pcf/120-P-1001.pcf"))
+          assert overlaps_pipe_elbow(doc), "baseline must show elbow overlap defect"
+          try:
+              assert_contiguous(doc)
+              raise SystemExit("baseline should fail contiguity")
+          except PCFParseError:
+              pass
+          print("baseline defect confirmed")
+          PY
+      - name: Docker build
+        run: docker build -t threadforge:ci .
+      - name: Container health
+        run: |
+          docker run -d --name tfci -p 8000:8000 -e TF_DATA=/data threadforge:ci
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:8000/health | grep -q status; then
+              echo healthy
+              docker rm -f tfci
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs tfci || true
+          docker rm -f tfci
+          exit 1
