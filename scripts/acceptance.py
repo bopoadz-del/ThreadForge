@@ -729,6 +729,11 @@ def A26() -> tuple[bool, str]:
 
 
 def A27() -> tuple[bool, str]:
+    """HEAD's evidence names HEAD's parent sha.
+
+    Commit artifacts/ci/docker_health.json from a successful docker job whose
+    ``sha`` is ``git rev-parse HEAD^``. File presence alone is not enough.
+    """
     ev = ROOT / "artifacts/ci/docker_health.json"
     if not ev.is_file():
         return False, "missing artifacts/ci/docker_health.json"
@@ -746,6 +751,7 @@ def A27() -> tuple[bool, str]:
 
 
 def A28() -> tuple[bool, str]:
+    """External CI evidence for HEAD's parent sha (ci_run.json or Actions API)."""
     ev = ROOT / "artifacts/ci/ci_run.json"
     try:
         parent = _git_parent_sha()
@@ -762,7 +768,8 @@ def A28() -> tuple[bool, str]:
             return False, f"ci_run.json sha={named} parent={parent}"
         if conclusion not in {"success", "completed"}:
             return False, f"ci_run.json conclusion={conclusion}"
-        return True, f"ci_run.json sha={named} conclusion={conclusion}"
+        run_id = data.get("run_id") or data.get("id")
+        return True, f"ci_run.json sha={named} conclusion={conclusion} run_id={run_id}"
 
     repo = os.environ.get("GITHUB_REPOSITORY", "bopoadz-del/ThreadForge")
     token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
@@ -802,7 +809,7 @@ def A29() -> tuple[bool, str]:
 
 
 def A30() -> tuple[bool, str]:
-    # v1.0.1 required locally and on origin. No CHANGELOG fallback.
+    """v1.0.1 must exist locally and on origin at the same peeled commit sha."""
     try:
         local = subprocess.check_output(
             ["git", "tag", "-l", "v1.0.1"],
@@ -820,8 +827,34 @@ def A30() -> tuple[bool, str]:
         return False, f"git:{type(exc).__name__}: {exc}"
     has_local = any(tag == "v1.0.1" for tag in local.split())
     has_remote = "refs/tags/v1.0.1" in remote
-    ok = has_local and has_remote
-    return ok, f"local={has_local} remote={has_remote} (v1.0.1 required; no changelog fallback)"
+    local_sha = ""
+    remote_sha = ""
+    if has_local:
+        try:
+            local_sha = subprocess.check_output(
+                ["git", "rev-parse", "v1.0.1^{commit}"],
+                cwd=str(ROOT),
+                text=True,
+                stderr=subprocess.DEVNULL,
+            ).strip()
+        except Exception as exc:  # noqa: BLE001
+            return False, f"local_sha:{type(exc).__name__}: {exc}"
+    peeled = ""
+    lightweight = ""
+    for line in remote.splitlines():
+        parts = line.split()
+        if len(parts) != 2:
+            continue
+        sha, ref = parts
+        if ref.endswith("^{}"):
+            peeled = sha
+        elif ref.endswith("refs/tags/v1.0.1"):
+            lightweight = sha
+    remote_sha = peeled or lightweight
+    match = bool(local_sha and remote_sha and local_sha == remote_sha)
+    ok = has_local and has_remote and match
+    remote_word = "match" if match else ("mismatch" if (has_local and has_remote) else str(has_remote))
+    return ok, f"tag=v1.0.1 remote={remote_word} local_sha={local_sha or '-'} remote_sha={remote_sha or '-'}"
 
 
 CHECKS = [
