@@ -1,0 +1,12 @@
+services:
+  threadforge:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      TF_DATA: /data
+      TF_API_TOKENS: engineer:eng-token:write,reviewer:rev-token:read
+    volumes:
+      - tfdata:/data
+volumes:
+  tfdata:

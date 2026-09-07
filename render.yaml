@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: threadforge
+    runtime: docker
+    plan: starter
+    healthCheckPath: /health
+    envVars:
+      - key: TF_DATA
+        value: /data
+      - key: TF_API_TOKENS
+        sync: false
+    disk:
+      name: tfdata
+      mountPath: /data
+      sizeGB: 1
