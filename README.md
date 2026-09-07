@@ -79,18 +79,18 @@ A16 PASS rows=4 keys_ok=True recon=True
 A17 PASS packs=6 with_pressure=6 sample={'boundary': ['FlowInPipeOffPageConnector-1', 'Nozzle-1', 'Nozzle-2', 'Nozzle-3', 'Nozzle-4', 'Nozzle-5'], 'test_pressure_barg': 90.0, 'design_pressure_barg': 60.0}
 A18 PASS total=30 iwps=23 size_ok=True qty_ok=True crew_ok=True
 A19 PASS hard=1 soft=6 keys=['adjacent_count', 'craft_warnings', 'flagged', 'flagged_count', 'hard_count', 'message', 'same_volume_count', 'soft_adjacent']
-A20 PASS dirty={'dirty': True, 'change_id': 'CHG-7bf4a640', 'artefact_kinds': ['routes', 'supports', 'isometric', 'quantities', 'pcf', 'clash', 'ga', 'test_pack', 'work_package'], 'artefact_ids': ['ART-200-P-1002.pcf', 'ART-200-P-1001.pcf', 'ART-200-D-1010.pcf', 'ART-210-G-2001.pcf'], 'affected_wp_ids': [], 'affected_stages': ['topology', 'piping', 'outputs']} line=LINE-200-P-1001
+A20 PASS dirty={'dirty': True, 'change_id': 'CHG-74730fed', 'artefact_kinds': ['routes', 'supports', 'isometric', 'quantities', 'pcf', 'clash', 'ga', 'test_pack', 'work_package'], 'artefact_ids': ['ART-210-G-2001.pcf', 'ART-200-P-1001.pcf', 'ART-200-P-1002.pcf', 'ART-200-D-1010.pcf'], 'affected_wp_ids': [], 'affected_stages': ['topology', 'piping', 'outputs']} line=LINE-200-P-1001
 A21 PASS level=L3_60 reasons={'fabricated_count': 0, 'unmatched_opc_count': 0, 'design_pressure_present': False, 'clash_hard': 0, 'factors': ['tags+sheets', 'topology', 'layout+equipment']}
 A22 PASS unknown=404 typed=422 first=202 dup=409 openapi=True
 A23 PASS common=21 mismatches=none
 A24 PASS health=200 tools=401
-A25 PASS status=202 queued job
+A25 PASS status=202 body={"id":"job-a39ac9d1f7","job_id":"job-a39ac9d1f7","status":"queued"}
 A26 PASS keys=['status', 'fail_closed', 'data_dir_writable', 'registry_schema', 'fixture_shas', 'schema_version']
-A27 FAIL missing artifacts/ci/docker_health.json
-A28 FAIL ci_missing=no committed ci_run.json / Actions API evidence for parent sha
+A27 PASS sha=3482773bee01f95d4014a6f932897805583cefe6 status=healthy
+A28 PASS ci_run.json sha=3482773bee01f95d4014a6f932897805583cefe6 conclusion=completed run_id=34170106380
 A29 PASS changelog=True regen=True tools_mapped=True
-A30 FAIL local=False remote=False (v1.0.1 required; no changelog fallback)
-ACCEPTANCE: 27/30 PASS
+A30 PASS tag=v1.0.1 remote=match
+ACCEPTANCE: 30/30 PASS
 ```
 
 ## REAL vs STUB
@@ -118,6 +118,9 @@ ACCEPTANCE: 27/30 PASS
 | Engineering tables | **REAL** (B36.10/MSS/B16.5/B31.3) | Cited in `tables.py` |
 | FastAPI + MCP + SQLite registry | **REAL** | `threadforge.server` |
 | Agent SYSTEM.md + JSONL REPL | **REAL** | `agent/run_repl.py` |
+| Docker health evidence (A27) | **REAL** (measured) | `artifacts/ci/docker_health.json` from CI docker job; names parent sha |
+| CI run evidence (A28) | **REAL** (measured) | `artifacts/ci/ci_run.json` from Actions run; names parent sha |
+| Release tag v1.0.1 (A30) | **REAL** (measured at tag) | local+remote `v1.0.1` at the same peeled sha |
 | Vendor DEXPI extensions / live APIs / client data | **WALL** | See WALLS.md |
 | Web 3D viewer / Gantt UI | **OUT OF SCOPE** | Data + tools only |
 

@@ -171,3 +171,16 @@ ACCEPTANCE: 1/30 PASS
 
 C08 note: TrainingTestCases C08 (Covestro) still ships PDF/XLS only — 0 Proteus XML via GitLab API recursive tree. A03/A04 remain red until H1 vendors/joins.
 
+---
+
+## v1.0.0 → v1.0.1 (A27 / A28 / A30 asserted → measured)
+
+Recorded 2026-09-07 on TARGET v1.0.1. Evidence files are real CI artifacts (not fabricated).
+A27/A28 name HEAD's parent sha (`3482773bee01f95d4014a6f932897805583cefe6`).
+
+| Check | v1.0.0 (asserted) | v1.0.1 (measured) |
+|---|---|---|
+| A27 docker health | files exist (`Dockerfile`, compose, `release_gate.py`) | `artifacts/ci/docker_health.json` from Actions run 34170106380 docker job; `sha=3482773bee01f95d4014a6f932897805583cefe6` `status=healthy` |
+| A28 CI run | `acceptance.py` present | `artifacts/ci/ci_run.json` from Actions run [34170106380](https://github.com/bopoadz-del/ThreadForge/actions/runs/34170106380); `status=completed`; jobs test=success docker=success (acceptance failed on parent for missing evidence/tag — bootstrap) |
+| A30 release tag | changelog / any v1 tag | `tag=v1.0.1` local+remote peeled sha match (measured after `make release` / tag push) |
+
