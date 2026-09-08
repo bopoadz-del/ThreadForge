@@ -1,5 +1,5 @@
 {
-  "sha": "08f377f08feca30b34cfcf359d2b151a7296c107",
+  "sha": "56100e770816e2b35ace501a5db967183c6be08c",
   "health_status": 200,
   "health_body": {
     "status": "ok",
@@ -7,9 +7,9 @@
     "data_dir_writable": true,
     "registry_schema": "head",
     "fixture_shas": true,
-    "schema_version": 1
+    "schema_version": 2
   },
   "tools_unauth_status": 401,
   "tools_auth_status": 200,
-  "image_digest": "sha256:35bd647d9a7ed380e47a94835ee1cfa7c384f84d657bb19e54a78008012c483a"
+  "image_digest": "sha256:00066ca5ee51f2e529a566788ffe75c6ac0ff7cf238e0a825720c6dd4b6b3bfc"
 }

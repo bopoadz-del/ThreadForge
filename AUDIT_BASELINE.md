@@ -422,3 +422,16 @@ B04, B40: still `_b_unstarted` FAIL (`evidence_files=0`).
 
 **ACCEPTANCE: 36/40 PASS** locally (B01 + B05–B39) without token (B02/B03 FAIL token/parent sha).
 
+---
+
+## M7 — B04+B40 (GHCR / Release / tag)
+
+Recorded 2026-09-08. B04/B40 implemented as live GHCR + GitHub Releases API checks
+(no file-presence PASS path). `artifacts/ci/docker_health.json` refreshed from M6
+Actions docker job for `56100e770816e2b35ace501a5db967183c6be08c`
+(health_status=200, tools 401/200, image_digest=sha256:00066ca5…). B03 PASSes on
+the M7 child commit (HEAD^=M6). B02 stays red until a parent workflow
+`conclusion=success` includes jobs test,docker,acceptance,probes,publish.
+Walls untouched.
+
+

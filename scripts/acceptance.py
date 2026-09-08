@@ -8,6 +8,7 @@ Exit 0 iff all 30 A-lines and all 40 B-lines PASS.
 """
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 import os
@@ -17,6 +18,7 @@ import sys
 import tempfile
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 from typing import Callable
@@ -991,6 +993,157 @@ def B02() -> tuple[bool, str]:
 
 def B03() -> tuple[bool, str]:
     return _docker_health_five()
+
+
+def _ghcr_bearer(owner: str, image: str, token: str) -> str:
+    """Exchange a GitHub token for a GHCR pull bearer (WWW-Authenticate)."""
+    scope = f"repository:{owner}/{image}:pull"
+    url = f"https://ghcr.io/token?service=ghcr.io&scope={urllib.parse.quote(scope, safe='')}"
+    req = urllib.request.Request(url)
+    basic = base64.b64encode(f"{owner}:{token}".encode()).decode()
+    req.add_header("Authorization", f"Basic {basic}")
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        payload = json.loads(resp.read().decode())
+    return str(payload.get("token") or "")
+
+
+def _ghcr_manifest_digest(owner: str, image: str, ref: str, token: str) -> str:
+    """HEAD/GET ghcr.io manifest; return Docker-Content-Digest (sha256:hex)."""
+    bearer = _ghcr_bearer(owner, image, token)
+    url = f"https://ghcr.io/v2/{owner}/{image}/manifests/{ref}"
+    headers = {
+        "Accept": (
+            "application/vnd.oci.image.index.v1+json, "
+            "application/vnd.oci.image.manifest.v1+json, "
+            "application/vnd.docker.distribution.manifest.list.v2+json, "
+            "application/vnd.docker.distribution.manifest.v2+json"
+        ),
+        "Authorization": f"Bearer {bearer}",
+        "User-Agent": "threadforge-acceptance",
+    }
+    req = urllib.request.Request(url, headers=headers, method="GET")
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        digest = resp.headers.get("Docker-Content-Digest") or ""
+    digest = digest.strip()
+    if not _DIGEST_RE.match(digest):
+        raise ValueError(f"manifest {ref} digest={digest or '-'}")
+    return digest
+
+
+def B04() -> tuple[bool, str]:
+    """GHCR :v2.0.0 and :sha-<short> manifest digests equal docker_health.image_digest."""
+    ev = ROOT / "artifacts/ci/docker_health.json"
+    if not ev.is_file():
+        return False, "missing artifacts/ci/docker_health.json"
+    try:
+        data = json.loads(ev.read_text(encoding="utf-8"))
+        parent = _git_parent_sha()
+    except Exception as exc:  # noqa: BLE001
+        return False, f"evidence:{type(exc).__name__}: {exc}"
+    digest = str(data.get("image_digest") or "")
+    if not _DIGEST_RE.match(digest):
+        return False, f"image_digest not sha256 hex: {digest or '-'}"
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    if not token:
+        return False, "token absent"
+    owner = os.environ.get("GITHUB_REPOSITORY_OWNER") or "bopoadz-del"
+    image = "threadforge"
+    short = parent[:12]
+    pulled: dict[str, str] = {}
+    errors: list[str] = []
+    for ref in ("v2.0.0", f"sha-{short}"):
+        try:
+            pulled[ref] = _ghcr_manifest_digest(owner, image, ref, token)
+        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, OSError, ValueError) as exc:
+            errors.append(f"{ref}:{type(exc).__name__}:{exc}")
+    v2 = pulled.get("v2.0.0")
+    sha_tag = pulled.get(f"sha-{short}")
+    ok = v2 == digest and sha_tag == digest and not errors
+    return ok, (
+        f"want={digest} v2.0.0={v2 or '-'} sha-{short}={sha_tag or '-'} "
+        f"errors={errors[:2] or 'none'}"
+    )
+
+
+def B40() -> tuple[bool, str]:
+    """GitHub Release v2.0.0 with wheel + CycloneDX SBOM + acceptance table; tag on main."""
+    try:
+        main_sha = subprocess.check_output(
+            ["git", "rev-parse", "refs/heads/main"],
+            cwd=str(ROOT),
+            text=True,
+            stderr=subprocess.DEVNULL,
+        ).strip()
+        v2_raw = subprocess.check_output(
+            ["git", "ls-remote", "--tags", "origin", "refs/tags/v2.0.0*"],
+            cwd=str(ROOT),
+            text=True,
+            stderr=subprocess.DEVNULL,
+        )
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as exc:
+        return False, f"ls-remote:{type(exc).__name__}:{exc}"
+    peeled = ""
+    lightweight = ""
+    for line in v2_raw.splitlines():
+        parts = line.split()
+        if len(parts) != 2:
+            continue
+        sha, ref = parts
+        if ref.endswith("^{}"):
+            peeled = sha
+        elif ref.endswith("refs/tags/v2.0.0"):
+            lightweight = sha
+    v2_sha = peeled or lightweight
+    if not v2_sha:
+        return False, "v2.0.0 tag absent on origin"
+    anc = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", v2_sha, main_sha],
+        cwd=str(ROOT),
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    if anc.returncode != 0:
+        return False, f"v2.0.0={v2_sha} not ancestor of main={main_sha}"
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    if not token:
+        return False, "token absent"
+    repo = os.environ.get("GITHUB_REPOSITORY", "bopoadz-del/ThreadForge")
+    url = f"https://api.github.com/repos/{repo}/releases/tags/v2.0.0"
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "threadforge-acceptance",
+        "Authorization": f"Bearer {token}",
+    }
+    try:
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            release = json.loads(resp.read().decode())
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, OSError) as exc:
+        return False, f"release_api:{type(exc).__name__}:{exc}"
+    assets = [str(a.get("name") or "") for a in (release.get("assets") or [])]
+    names = " ".join(assets).lower()
+    has_whl = any(n.endswith(".whl") and "threadforge" in n.lower() for n in assets)
+    has_sbom = any(("sbom" in n.lower() or n.endswith(".cdx.json")) for n in assets)
+    table_name = next((n for n in assets if "accept" in n.lower()), "")
+    table_ok = False
+    if table_name:
+        table_url = next(
+            str(a.get("browser_download_url") or "")
+            for a in (release.get("assets") or [])
+            if a.get("name") == table_name
+        )
+        try:
+            req2 = urllib.request.Request(table_url, headers=headers)
+            with urllib.request.urlopen(req2, timeout=15) as resp:
+                table_body = resp.read().decode()
+            table_ok = all(f"B{n:02d}" in table_body for n in range(1, 41))
+        except (urllib.error.URLError, TimeoutError, OSError) as exc:
+            return False, f"table_download:{type(exc).__name__}:{exc} assets={assets}"
+    ok = has_whl and has_sbom and table_ok
+    return ok, (
+        f"tag={v2_sha[:12]} assets={assets} whl={has_whl} sbom={has_sbom} "
+        f"table={table_ok} names={names[:80]}"
+    )
 
 
 def B05() -> tuple[bool, str]:
@@ -2443,6 +2596,7 @@ _B_IMPL: dict[str, Callable[[], tuple[bool, str]]] = {
     "B01": B01,
     "B02": B02,
     "B03": B03,
+    "B04": B04,
     "B05": B05,
     "B06": B06,
     "B07": B07,
@@ -2478,6 +2632,7 @@ _B_IMPL: dict[str, Callable[[], tuple[bool, str]]] = {
     "B37": B37,
     "B38": B38,
     "B39": B39,
+    "B40": B40,
 }
 
 B_CHECKS: list[tuple[str, Callable[[], tuple[bool, str]]]] = [

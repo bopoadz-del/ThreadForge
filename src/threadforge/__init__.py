@@ -1,6 +1,6 @@
 """ThreadForge — agent-native EPC digital-thread MVP."""
 
-__version__ = "1.0.1"
+__version__ = "2.0.0"
 
 from threadforge import agent_tools
 from threadforge.graph import TopologyGraph

@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased (M7 B04+B40 — tagging v2.0.0)
+
+- B04: GHCR `v2.0.0` + `sha-<12>` manifest digests must equal `docker_health.image_digest`.
+- B40: GitHub Release v2.0.0 with wheel + CycloneDX SBOM + acceptance table; tag ancestor of main.
+- CI publish pushes `:v2.0.0` and `:sha-<12>`; docker job pulls the published image and records RepoDigest.
+- Package version 2.0.0.
+
 ## Unreleased (M6 B36–B39 — not v2.0.0)
 
 - B36: `coverage.py --branch` official `percent_covered` ≥ 85% (measured json totals).
