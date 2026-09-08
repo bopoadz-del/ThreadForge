@@ -7,6 +7,7 @@ from pathlib import Path
 
 from threadforge.ingest_dexpi import (
     DEXPI_COVERAGE_GAPS,
+    VENDOR_ONLY_GAPS,
     coverage_report,
     load_fixture,
     validate_xsd,
@@ -17,7 +18,7 @@ PUBLIC = ROOT / "fixtures" / "public"
 DEXPI13 = PUBLIC / "dexpi13"
 
 PINNED_C01 = {"pipelines": 23, "equipment": 21, "nozzles": 21, "instruments": 6}
-PINNED_GAP_COUNT = 6
+PINNED_GAP_COUNT = 0
 
 C01_SHA = "a2b172f04e0dcf9a668e158c6dee3b5fd0dd4e9027b572dc39e54470562b809c"
 XSD_SHA = "f14652c0f3ff79eea6bb1c92f276c79f41ebad2945324f70b348c377c00385ff"
@@ -86,12 +87,24 @@ def test_c03_e06_p01_loadable():
         assert len(g.pipelines) + len(g.equipment) + len(g.nozzles) > 0
 
 
+PINNED_VENDOR_ONLY_GAPS = [
+    {"name": "AVEVA ComponentClass URI dictionary", "vendor": "AVEVA"},
+    {"name": "Hexagon Smart P&ID ComponentClass URI dictionary", "vendor": "Hexagon"},
+    {"name": "Autodesk Plant 3D ComponentClass URI dictionary", "vendor": "Autodesk"},
+]
+
+
 def test_coverage_gaps_shrunk_and_pinned():
     cov = coverage_report()
     assert "GenericAttributes" in cov["supported_elements"]
     assert "PipeOffPageConnector" in cov["supported_elements"]
+    assert "PipeTee" in cov["supported_elements"]
+    assert "ActuatingSystem" in cov["supported_elements"]
+    assert DEXPI_COVERAGE_GAPS == []
     assert len(DEXPI_COVERAGE_GAPS) == cov["gap_count"]
     assert cov["gap_count"] == PINNED_GAP_COUNT
+    assert VENDOR_ONLY_GAPS == PINNED_VENDOR_ONLY_GAPS
+    assert cov["vendor_only_gaps"] == PINNED_VENDOR_ONLY_GAPS
     assert "vendor" in cov["wall"].lower() or "Vendor" in cov["wall"]
 
 

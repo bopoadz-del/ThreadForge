@@ -19,6 +19,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any, Optional, Union
 
+from threadforge.dexpi_public import file_known_deltas
 from threadforge.graph import TopologyGraph
 from threadforge.models import (
     BatteryLimit,
@@ -38,18 +39,16 @@ from threadforge.models import (
 
 FIXTURES_DIR = Path(__file__).resolve().parents[2] / "fixtures"
 
-# Documented coverage gaps (also mirrored in WALLS.md)
-DEXPI_COVERAGE_GAPS = [
-    "Vendor ComponentClass URI dictionaries (AVEVA/Hexagon/Autodesk extensions)",
-    "PipingComponent catalogue (full elbow/tee/reducer geometry params)",
-    "ActuatingFunction / SignalConveyingFunction (full control-loop semantics)",
-    "PropertyBreak / SpecBreak with full material class refs",
-    "LabeledComposition / ProcessStream fluid properties",
-    "Vendor proprietary extensions (AVEVA / Hexagon / Autodesk)",
+# 1.3 core is parsed (B07). Remaining gaps are vendor extensions only.
+DEXPI_COVERAGE_GAPS: list[str] = []
+VENDOR_ONLY_GAPS: list[dict[str, str]] = [
+    {"name": "AVEVA ComponentClass URI dictionary", "vendor": "AVEVA"},
+    {"name": "Hexagon Smart P&ID ComponentClass URI dictionary", "vendor": "Hexagon"},
+    {"name": "Autodesk Plant 3D ComponentClass URI dictionary", "vendor": "Autodesk"},
 ]
-# Closed vs prior gap list: public XSD 4.1(+4.1.1 RC1) vendored + validate_xsd;
-# GenericAttributes mapped (LineNumber/DN/PipingClass/FluidCode/pressure/material/insulation/TagName);
-# OffPageConnector / P02 OPC cross-sheet joins; Insulation* GenericAttributes read.
+# Closed vs prior gap list: PipingComponent subtypes, InstrumentationLoop/SignalLine,
+# ActuatingSystem, InlineComponents, PipeTee/Cross, PropertyBreak/SpecBreak,
+# Insulation, Tracing. Vendor dictionaries remain under VENDOR_ONLY_GAPS.
 
 
 def _text(el: Optional[ET.Element], default: str = "") -> str:
@@ -813,6 +812,10 @@ def parse_dexpi_xml(source: Union[str, Path, bytes]) -> TopologyGraph:
                 )
             )
 
+    from threadforge.dexpi_core import enrich_dexpi_core
+
+    enrich_dexpi_core(root, graph, parents)
+
     graph.metadata["sheet_ids"] = list(graph.sheets.keys())
     graph.metadata["multi_sheet"] = len(graph.sheets) > 1
     return graph
@@ -941,6 +944,21 @@ def load_fixtures_multi(paths: list[Union[str, Path]]) -> TopologyGraph:
         for fid, ft in g.from_tos.items():
             if fid not in merged.from_tos:
                 merged.add_from_to(ft)
+        for name in (
+            "piping_components",
+            "actuating_systems",
+            "instrumentation_loops",
+            "signal_lines",
+            "inline_components",
+            "property_breaks",
+            "spec_breaks",
+            "branches",
+        ):
+            dest = getattr(merged, name)
+            src = getattr(g, name)
+            for key, val in src.items():
+                if key not in dest:
+                    dest[key] = val
     if merged is None:
         raise FileNotFoundError("load_fixtures_multi: no paths")
     join_opc_across_graphs(merged)
@@ -958,10 +976,16 @@ def coverage_report() -> dict[str, Any]:
             "Sheet", "Drawing",
             "Equipment", "ProcessEquipment", "Nozzle",
             "PipingNetworkSegment", "PipeLine", "Line", "Component", "PipingComponent",
+            "PipingComponent subtypes", "PipeTee", "PipeCross", "InlineComponent",
+            "PropertyBreak", "SpecBreak",
             "Connection", "GenericAttributes", "PipingNetworkSystem",
             "OffPageConnector", "PipeOffPageConnector", "PipeOffPageConnectorReference",
             "Instrument", "InstrumentationFunction", "ProcessInstrumentFunction",
             "ProcessInstrumentationFunction",
+            "InstrumentationLoop", "InstrumentationLoopFunction",
+            "SignalLine", "InformationFlow", "SignalConveyingFunction",
+            "ActuatingSystem", "ActuatingSystemComponent",
+            "Insulation", "Tracing",
             "BatteryLimit", "PlantAreaBoundary",
             "DesignVolume", "Volume",
             "System", "BoundaryTag",
@@ -969,6 +993,7 @@ def coverage_report() -> dict[str, Any]:
     return {
         "supported_elements": supported,
         "gaps": list(DEXPI_COVERAGE_GAPS),
+        "vendor_only_gaps": list(VENDOR_ONLY_GAPS),
         "wall": "Vendor DEXPI extensions only — public XSD validation when vendored; see WALLS.md",
         "gap_count": len(DEXPI_COVERAGE_GAPS),
     }
@@ -1024,10 +1049,12 @@ def validate_xsd(path: Union[str, Path], xsd_path: Optional[Union[str, Path]] = 
         xsd_path = chosen
     xsd_path = Path(xsd_path)
 
-    prefer_xmlschema = bool(schema_version and _schema_version_at_least(schema_version, "4.1.1"))
+    # B06: SchemaVersion-matched validation is computed with xmlschema.
+    prefer_xmlschema = True
     # When validating explicitly against 4.1 while document is 4.1.1, surface known deltas.
     xsd_is_41 = "4.1.1" not in xsd_path.name and xsd_path.name.endswith("4.1.xsd")
     known_list = list(KNOWN_XSD_DELTAS["4.1_vs_4.1.1_RC1"])
+    documented = file_known_deltas(path.name)
 
     def _run_xmlschema() -> dict[str, Any]:
         import xmlschema
@@ -1035,17 +1062,21 @@ def validate_xsd(path: Union[str, Path], xsd_path: Optional[Union[str, Path]] = 
         xs = xmlschema.XMLSchema(str(xsd_path), validation="lax")
         errors = list(xs.iter_errors(str(path)))
         ok = len(errors) == 0
+        if ok:
+            deltas: list[str] = []
+        elif xsd_is_41:
+            deltas = known_list
+        else:
+            deltas = list(documented)
         result: dict[str, Any] = {
             "ok": ok,
             "status": "validated" if ok else "invalid",
             "xsd": str(xsd_path),
             "schema_version": schema_version,
             "engine": "xmlschema",
-            "known_deltas": known_list if (not ok and xsd_is_41) else (KNOWN_XSD_DELTAS if not ok else []),
+            "known_deltas": deltas,
             "errors": [str(e) for e in errors[:20]],
         }
-        if not ok and xsd_is_41:
-            result["known_deltas"] = known_list
         return result
 
     def _run_lxml() -> dict[str, Any]:
@@ -1054,17 +1085,21 @@ def validate_xsd(path: Union[str, Path], xsd_path: Optional[Union[str, Path]] = 
         schema = etree.XMLSchema(etree.parse(str(xsd_path)))
         doc = etree.parse(str(path))
         ok = bool(schema.validate(doc))
+        if ok:
+            deltas = []
+        elif xsd_is_41:
+            deltas = known_list
+        else:
+            deltas = list(documented)
         result = {
             "ok": ok,
             "status": "validated" if ok else "invalid",
             "xsd": str(xsd_path),
             "schema_version": schema_version,
             "engine": "lxml",
-            "known_deltas": known_list if (not ok and xsd_is_41) else (KNOWN_XSD_DELTAS if not ok else []),
+            "known_deltas": deltas,
             "errors": [str(e) for e in schema.error_log][:20] if not ok else [],
         }
-        if not ok and xsd_is_41:
-            result["known_deltas"] = known_list
         return result
 
     engines = [_run_xmlschema, _run_lxml] if prefer_xmlschema else [_run_lxml, _run_xmlschema]

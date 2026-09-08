@@ -276,3 +276,21 @@ Measured after FF `main` → `08f377f08feca30b34cfcf359d2b151a7296c107` and dele
 | B02 | **FAIL** | HEAD^ CI for `08f377f` run [34173455197](https://github.com/bopoadz-del/ThreadForge/actions/runs/34173455197) `conclusion=failure` (acceptance red on B04–B40 / rewritten A27–A28). Jobs test/docker/probes/publish=success; acceptance=failure. Token-absent still FAIL. |
 | B03 | evidence committed below | `docker_health.json` from that run’s docker job (sha=`08f377f…`, health_status=200, health_body from live `/health`, tools 401/200, image_digest `sha256:35bd647d…`). PASSes only on the commit whose `HEAD^` is `08f377f`. |
 
+### M1 — B05–B09 measured (DEXPI ceiling)
+
+Recorded 2026-09-08 after standing gate green + `python scripts/acceptance.py` on this M1 tip.
+Checks PASS only on computed ingest / xmlschema / row counts (not file presence).
+B04 and B10–B40 remain FAIL. Walls untouched. No `v2.0.0` tag.
+
+| ID | Result | Measured |
+|---|---|---|
+| B05 | **PASS** | 35 TrainingTestCases `dexpi 1.3/example pids/*.xml` (C08 upstream xml=0) ingest with 0 exceptions; sha+counts match `pins.json` |
+| B06 | **PASS** | 35/35 `validate_xsd` engine=xmlschema status=validated errors=0; `known_deltas.json` empty (no per-file deltas) |
+| B07 | **PASS** | `DEXPI_COVERAGE_GAPS==[]`; C01 tees=5 loops=4 signals=6 acts=3 inline=3; C03 insulation=8 tracing=8; `VENDOR_ONLY_GAPS` = AVEVA/Hexagon/Autodesk dictionaries |
+| B08 | **PASS** | C03 Equinor `branch_count=0` (pinned); C01 `branch_count=5`; 5 branch routes start at tee stub XYZ, not a nozzle |
+| B09 | **PASS** | C01 xlsx data rows lines=23 valves=11 instruments=6 tie_ins=4 (openpyxl read-back); columns in `docs/exports.md` |
+
+B10–B40: still `_b_unstarted` FAIL (`evidence_files=0`).
+
+**ACCEPTANCE: 6/40 PASS** on M1 tip when B01 is green and B02/B03 have token+HEAD^ evidence; locally without token: B05–B09 PASS, B01 PASS, B02/B03 FAIL (token/parent sha).
+

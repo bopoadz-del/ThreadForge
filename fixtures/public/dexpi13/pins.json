@@ -9,7 +9,14 @@
       "nozzles": 21,
       "instruments": 6,
       "sha256": "a2b172f04e0dcf9a668e158c6dee3b5fd0dd4e9027b572dc39e54470562b809c",
-      "bytes": 445726
+      "bytes": 445726,
+      "xlsx": {
+        "lines": 23,
+        "valves": 11,
+        "instruments": 6,
+        "tie_ins": 4
+      },
+      "branches": 5
     },
     "C02V03-VER.EX02.xml": {
       "pipelines": 9,
@@ -25,7 +32,8 @@
       "nozzles": 0,
       "instruments": 2,
       "sha256": "a1c892f3bc21338c2546baf71e10abf11e3653b7cd6956b1a24bcfab0db88f14",
-      "bytes": 68507
+      "bytes": 68507,
+      "branches": 0
     },
     "E01V02-VER.EX01.xml": {
       "pipelines": 0,

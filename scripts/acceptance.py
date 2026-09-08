@@ -1026,6 +1026,188 @@ def B05() -> tuple[bool, str]:
     )
 
 
+def B06() -> tuple[bool, str]:
+    """Each vendor PID validates via xmlschema; known_deltas only if documented per file."""
+    from threadforge.dexpi_public import file_known_deltas, vendor_xmls
+    from threadforge.ingest_dexpi import validate_xsd
+
+    xmls = vendor_xmls()
+    bad: list[str] = []
+    validated = 0
+    documented_invalid = 0
+    for path in xmls:
+        result = validate_xsd(path)
+        documented = file_known_deltas(path.name)
+        engine = result.get("engine")
+        deltas = result.get("known_deltas") or []
+        if engine != "xmlschema":
+            bad.append(f"{path.name}:engine={engine}")
+            continue
+        if documented:
+            if result.get("ok") is True or list(deltas) != documented:
+                bad.append(f"{path.name}:documented_delta_mismatch ok={result.get('ok')}")
+            else:
+                documented_invalid += 1
+            continue
+        if (
+            result.get("ok") is True
+            and result.get("status") == "validated"
+            and not deltas
+            and len(result.get("errors") or []) == 0
+        ):
+            validated += 1
+        else:
+            bad.append(f"{path.name}:status={result.get('status')} deltas={deltas[:1]}")
+    ok = not bad and (validated + documented_invalid) == len(xmls) and len(xmls) >= 30
+    return ok, f"validated={validated} documented_invalid={documented_invalid} bad={bad[:5] or 'none'}"
+
+
+_PINNED_VENDOR_ONLY = [
+    {"name": "AVEVA ComponentClass URI dictionary", "vendor": "AVEVA"},
+    {"name": "Hexagon Smart P&ID ComponentClass URI dictionary", "vendor": "Hexagon"},
+    {"name": "Autodesk Plant 3D ComponentClass URI dictionary", "vendor": "Autodesk"},
+]
+
+
+def B07() -> tuple[bool, str]:
+    """DEXPI_COVERAGE_GAPS empty; 1.3 core parsed; vendor gaps pinned with vendor names."""
+    from threadforge.ingest_dexpi import (
+        DEXPI_COVERAGE_GAPS,
+        VENDOR_ONLY_GAPS,
+        coverage_report,
+        load_fixture,
+    )
+
+    cov = coverage_report()
+    if DEXPI_COVERAGE_GAPS != [] or cov["gaps"] != []:
+        return False, f"gaps={DEXPI_COVERAGE_GAPS}"
+    if VENDOR_ONLY_GAPS != _PINNED_VENDOR_ONLY or cov.get("vendor_only_gaps") != _PINNED_VENDOR_ONLY:
+        return False, f"vendor_only={VENDOR_ONLY_GAPS}"
+    need = (
+        "PipingComponent subtypes",
+        "InstrumentationLoop",
+        "SignalLine",
+        "ActuatingSystem",
+        "InlineComponent",
+        "PipeTee",
+        "PipeCross",
+        "PropertyBreak",
+        "SpecBreak",
+        "Insulation",
+        "Tracing",
+    )
+    missing = [n for n in need if n not in cov["supported_elements"]]
+    g = load_fixture("C01V04-VER.EX01.xml")
+    g3 = load_fixture("C03V04-VER.EX02.xml")
+    tees = sum(1 for c in g.piping_components.values() if c.get("component_class") == "PipeTee")
+    ok = (
+        not missing
+        and tees >= 1
+        and bool(g.instrumentation_loops)
+        and bool(g.signal_lines)
+        and bool(g.actuating_systems)
+        and bool(g.inline_components)
+        and int(g3.metadata.get("insulation_count") or 0) >= 1
+        and int(g3.metadata.get("tracing_count") or 0) >= 1
+    )
+    return ok, (
+        f"tees={tees} loops={len(g.instrumentation_loops)} signals={len(g.signal_lines)} "
+        f"acts={len(g.actuating_systems)} inline={len(g.inline_components)} "
+        f"insul={g3.metadata.get('insulation_count')} trace={g3.metadata.get('tracing_count')} "
+        f"missing={missing or 'none'}"
+    )
+
+
+def B08() -> tuple[bool, str]:
+    """C03 Equinor branch count pinned; C01 branch routes start at tee stub, not nozzle."""
+    from threadforge.dexpi_public import load_pins
+    from threadforge.ingest_dexpi import load_fixture
+    from threadforge.routing import fitting_stub_xyz, nozzle_point, route_pipeline
+
+    pins = load_pins()["counts"]
+    g3 = load_fixture("C03V04-VER.EX02.xml")
+    pinned = int(pins["C03V04-VER.EX02.xml"]["branches"])
+    computed = int(g3.metadata.get("branch_count") or 0)
+    if computed != pinned:
+        return False, f"C03 branch_count={computed} pin={pinned}"
+    g = load_fixture("C01V04-VER.EX01.xml")
+    c01_pin = int(pins["C01V04-VER.EX01.xml"]["branches"])
+    if int(g.metadata.get("branch_count") or 0) != c01_pin:
+        return False, f"C01 branch_count={g.metadata.get('branch_count')} pin={c01_pin}"
+    checked = 0
+    for pipe in g.pipelines.values():
+        if not pipe.metadata.get("branch_route"):
+            continue
+        if pipe.from_tag not in g.branches and pipe.to_tag not in g.branches:
+            continue
+        route = route_pipeline(g, pipe)
+        fitting = pipe.from_tag if pipe.from_tag in g.branches else pipe.to_tag
+        stub = fitting_stub_xyz(g, fitting)
+        if stub is None:
+            return False, f"{pipe.id}:no stub"
+        start = (route["points"][0]["x"], route["points"][0]["y"], route["points"][0]["z"])
+        if start != stub or route.get("geometry_source") != "tee_stub":
+            return False, f"{pipe.id}:start={start} stub={stub} src={route.get('geometry_source')}"
+        for nid in g.nozzles:
+            npt = nozzle_point(g, nid)
+            if npt is not None and start == npt:
+                return False, f"{pipe.id}:start matches nozzle {nid}"
+        checked += 1
+    ok = checked >= 1 and computed == pinned
+    return ok, f"C03_branches={computed} C01_branch_routes={checked} pin_c03={pinned}"
+
+
+def B09() -> tuple[bool, str]:
+    """C01 line/valve/instrument/tie-in xlsx row counts pinned; columns match docs/exports.md."""
+    import tempfile
+
+    from openpyxl import load_workbook
+
+    from threadforge.dexpi_public import load_pins
+    from threadforge.exporters.xlsx import (
+        INSTRUMENT_COLUMNS,
+        LINE_COLUMNS,
+        TIEIN_COLUMNS,
+        VALVE_COLUMNS,
+        export_lists_xlsx,
+        list_row_counts,
+    )
+    from threadforge.ingest_dexpi import load_fixture
+
+    g = load_fixture("C01V04-VER.EX01.xml")
+    pinned = load_pins()["counts"]["C01V04-VER.EX01.xml"]["xlsx"]
+    computed = list_row_counts(g)
+    if computed != pinned:
+        return False, f"counts={computed} pin={pinned}"
+    docs = (ROOT / "docs" / "exports.md").read_text(encoding="utf-8")
+    expect = {
+        "lines": LINE_COLUMNS,
+        "valves": VALVE_COLUMNS,
+        "instruments": INSTRUMENT_COLUMNS,
+        "tie_ins": TIEIN_COLUMNS,
+    }
+    missing_docs = [c for cols in expect.values() for c in cols if f"`{c}`" not in docs]
+    with tempfile.TemporaryDirectory() as td:
+        path = Path(td) / "lists.xlsx"
+        export_lists_xlsx(g, path)
+        wb = load_workbook(path)
+        sheet_rows: dict[str, int] = {}
+        for sheet, cols in expect.items():
+            ws = wb[sheet]
+            header = [c.value for c in ws[1]]
+            if header != cols:
+                return False, f"{sheet} header={header} want={cols}"
+            sheet_rows[sheet] = sum(
+                1
+                for row in ws.iter_rows(min_row=2)
+                if any(c.value not in (None, "") for c in row)
+            )
+        if sheet_rows != pinned:
+            return False, f"xlsx_rows={sheet_rows} pin={pinned}"
+    ok = not missing_docs
+    return ok, f"xlsx={sheet_rows} docs_missing={missing_docs or 'none'}"
+
+
 def _b_unstarted(bid: str) -> Callable[[], tuple[bool, str]]:
     def _fn() -> tuple[bool, str]:
         ev_dir = ROOT / "artifacts" / "ci"
@@ -1077,6 +1259,10 @@ _B_IMPL: dict[str, Callable[[], tuple[bool, str]]] = {
     "B02": B02,
     "B03": B03,
     "B05": B05,
+    "B06": B06,
+    "B07": B07,
+    "B08": B08,
+    "B09": B09,
 }
 
 B_CHECKS: list[tuple[str, Callable[[], tuple[bool, str]]]] = [

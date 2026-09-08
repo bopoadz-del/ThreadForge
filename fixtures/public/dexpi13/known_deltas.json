@@ -1,0 +1,3 @@
+{
+  "_comment": "Per-file XSD known_deltas. TrainingTestCases dexpi 1.3 example PIDs validate against the SchemaVersion-matched Proteus XSD via xmlschema; no deltas are documented."
+}

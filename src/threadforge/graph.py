@@ -34,6 +34,14 @@ class TopologyGraph:
         self.volumes: dict[str, DesignVolume] = {}
         self.systems: dict[str, System] = {}
         self.work_packages: dict[str, WorkPackage] = {}
+        self.piping_components: dict[str, dict[str, Any]] = {}
+        self.actuating_systems: dict[str, dict[str, Any]] = {}
+        self.instrumentation_loops: dict[str, dict[str, Any]] = {}
+        self.signal_lines: dict[str, dict[str, Any]] = {}
+        self.inline_components: dict[str, dict[str, Any]] = {}
+        self.property_breaks: dict[str, dict[str, Any]] = {}
+        self.spec_breaks: dict[str, dict[str, Any]] = {}
+        self.branches: dict[str, dict[str, Any]] = {}
         self.unmatched_tags: list[str] = []
         self.metadata: dict[str, Any] = {}
         # Shared A* geometry: line_id → RouteResult dict (points, length_m, accuracy, …).

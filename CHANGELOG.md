@@ -3,6 +3,10 @@
 ## Unreleased (M1 B05–B09 — not v2.0.0)
 
 - B05: vendor all 35 DEXPI 1.3 TrainingTestCases example P&IDs (CC-BY-4.0) with sha manifest + `pins.json`.
+- B06: every vendor PID validates via xmlschema against SchemaVersion-matched XSD; `known_deltas` only per file.
+- B07: `DEXPI_COVERAGE_GAPS == []`; 1.3 core parsed; remaining items in `VENDOR_ONLY_GAPS` with vendor names.
+- B08: tees/crosses → branched graph; C03 Equinor branch count pinned; branch routes start at tee stub.
+- B09: line/valve/instrument/tie-in `.xlsx` (openpyxl); C01 row counts pinned; columns in `docs/exports.md`.
 
 ## Unreleased (M0 / K6 — not v2.0.0)
 

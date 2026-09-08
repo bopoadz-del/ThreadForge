@@ -32,6 +32,28 @@ Point3 = tuple[float, float, float]
 
 
 
+def fitting_stub_xyz(graph: TopologyGraph, tag_id: Optional[str]) -> Optional[Point3]:
+    """Tee/cross stub Location — branch routes start here, not at a nozzle."""
+    if not tag_id:
+        return None
+    br = graph.branches.get(tag_id)
+    if not br:
+        return None
+    xyz = br.get("xyz")
+    if not xyz:
+        for stub in br.get("stubs") or []:
+            if stub.get("role") == "branch" and stub.get("xyz"):
+                xyz = stub["xyz"]
+                break
+            if stub.get("xyz"):
+                xyz = stub["xyz"]
+                break
+    if not xyz or len(xyz) < 2:
+        return None
+    z = float(xyz[2]) if len(xyz) > 2 and xyz[2] is not None else 5.0
+    return (float(xyz[0]), float(xyz[1]), z)
+
+
 def nozzle_xyz_explicit(graph: TopologyGraph, nozzle_or_tag_id: Optional[str]) -> Optional[Point3]:
     """Return XYZ only when the nozzle record itself carries coordinates."""
     if not nozzle_or_tag_id:
@@ -162,9 +184,11 @@ def route_pipeline(
     ``fabricated`` / ``degraded`` (never silent). Fallback coordinates may
     still be produced for sketching, but downstream artefacts must carry the flag.
     """
-    start_explicit = nozzle_xyz_explicit(graph, pipe.from_tag)
-    end_explicit = nozzle_xyz_explicit(graph, pipe.to_tag)
-    fabricated = start_explicit is None or end_explicit is None
+    start_stub = fitting_stub_xyz(graph, pipe.from_tag)
+    end_stub = fitting_stub_xyz(graph, pipe.to_tag)
+    start_explicit = start_stub or nozzle_xyz_explicit(graph, pipe.from_tag)
+    end_explicit = end_stub or nozzle_xyz_explicit(graph, pipe.to_tag)
+    fabricated = (start_explicit is None or end_explicit is None) and not (start_stub or end_stub)
 
     start = start_explicit if start_explicit is not None else nozzle_point(graph, pipe.from_tag)
     end = end_explicit if end_explicit is not None else nozzle_point(graph, pipe.to_tag)
@@ -203,7 +227,15 @@ def route_pipeline(
             "Coordinates from nozzle XYZ or volume centroids."
         ),
     }
-    if fabricated:
+    if start_stub:
+        out["start_source"] = "tee_stub"
+    if end_stub:
+        out["end_source"] = "tee_stub"
+    if start_stub or end_stub:
+        out["status"] = "ok"
+        out["geometry_source"] = "tee_stub"
+        out["accuracy"] = "tee_stub"
+    elif fabricated:
         out["status"] = "degraded"
         out["geometry_source"] = "fabricated"
         out["accuracy"] = "fabricated_fallback"
@@ -532,13 +564,19 @@ def route_pipeline_astar(
     ``accuracy="manhattan_fallback"``) or endpoints lack nozzle XYZ
     (fabricated_fallback). Downstream artefact generators must not call it.
     """
-    start_explicit = nozzle_xyz_explicit(graph, pipe.from_tag)
-    end_explicit = nozzle_xyz_explicit(graph, pipe.to_tag)
+    start_stub = fitting_stub_xyz(graph, pipe.from_tag)
+    end_stub = fitting_stub_xyz(graph, pipe.to_tag)
+    start_explicit = start_stub or nozzle_xyz_explicit(graph, pipe.from_tag)
+    end_explicit = end_stub or nozzle_xyz_explicit(graph, pipe.to_tag)
     fabricated = start_explicit is None or end_explicit is None
     if fabricated:
         # Fabricated geometry — single call to manhattan stub, flagged.
         base = route_pipeline(graph, pipe, support_spacing=support_spacing)
-        base["accuracy"] = "fabricated_fallback"
+        if start_stub or end_stub:
+            base["accuracy"] = "tee_stub"
+            base["geometry_source"] = "tee_stub"
+        else:
+            base["accuracy"] = "fabricated_fallback"
         return base
 
     start = start_explicit
@@ -593,7 +631,8 @@ def route_pipeline_astar(
             s for s in supports if s.get("type") in {"near_bend", "near_nozzle"}
         ]
     bend_count = int(result.get("bends") or max(0, len(pts) - 2))
-    return {
+    geom_src = "tee_stub" if (start_stub or end_stub) else "nozzle_xyz"
+    out_ast: dict[str, Any] = {
         "line_id": pipe.id,
         "line_number": pipe.line_number,
         "from": pipe.from_tag,
@@ -607,7 +646,7 @@ def route_pipeline_astar(
         "bends": result.get("bends"),
         "bend_count": bend_count,
         "status": "ok",
-        "geometry_source": "nozzle_xyz",
+        "geometry_source": geom_src,
         "clearance_ok": True,
         "equipment_clearance_mm": int(clearance * 1000),
         "drains_monotonic": True if drain else True,
@@ -617,6 +656,11 @@ def route_pipeline_astar(
             "Coordinates from nozzle XYZ; equipment AABBs + prior capsules as obstacles."
         ),
     }
+    if start_stub:
+        out_ast["start_source"] = "tee_stub"
+    if end_stub:
+        out_ast["end_source"] = "tee_stub"
+    return out_ast
 
 
 def generate_routes_astar(graph: TopologyGraph, support_spacing: float = 3.0, grid: float = 0.5) -> ArtefactDescriptor:

@@ -83,6 +83,7 @@ class ArtefactKind(str, Enum):
     CLASH = "clash"
     IFC = "ifc"
     DXF = "dxf"
+    XLSX = "xlsx"
 
 
 # ---------------------------------------------------------------------------

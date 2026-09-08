@@ -26,10 +26,15 @@ def test_rich_fixture_counts():
 
 
 def test_coverage_report_lists_gaps():
+    from threadforge.ingest_dexpi import DEXPI_COVERAGE_GAPS, VENDOR_ONLY_GAPS
+
     cov = coverage_report()
     assert "Equipment" in cov["supported_elements"]
     assert "ProcessInstrumentFunction" in cov["supported_elements"]
-    assert len(cov["gaps"]) >= 5
+    assert DEXPI_COVERAGE_GAPS == []
+    assert cov["gaps"] == []
+    assert len(VENDOR_ONLY_GAPS) == 3
+    assert all(g.get("vendor") for g in VENDOR_ONLY_GAPS)
     assert "WALL" in cov["wall"] or "wall" in cov["wall"].lower() or "XSD" in cov["wall"]
 
 
