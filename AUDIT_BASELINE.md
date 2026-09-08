@@ -320,3 +320,30 @@ B04, B16–B40: still `_b_unstarted` FAIL (`evidence_files=0`).
 **ACCEPTANCE: 12/40 PASS** locally (B01 + B05–B15) without token (B02/B03 FAIL token/parent sha).
 With token + green HEAD^ jobs, B03 still needs docker_health named for that parent; B02 stays red until later.
 
+---
+
+## M3 — B16–B21 measured (piping outputs)
+
+Recorded 2026-09-08 after standing gate green + `python scripts/acceptance.py` on this M3 tip
+(started from M2 `a946a4fc8f4c8453df5139327ab71f00f0a5808c`).
+Checks PASS only on computed spool lengths/masses/AABB, iso `dim_sum_mm`,
+pypdf page/text, ifcopenshell.validate error count, axis length, unique
+IfcRelConnectsPorts pairs, NDT ceil(5%), and MTO three-level relative error.
+No file-presence PASS path. B04 and B22–B40 remain FAIL. B02 stays red
+(token/HEAD^ CI). No `v2.0.0` tag. Walls: ISOGEN certification — one WALL log
+line in `spooling.py`; NWD/RVT/DGN/DWG, vendor live APIs, client data, web UI
+untouched.
+
+| ID | Result | Measured |
+|---|---|---|
+| B16 | **PASS** | Crafted 6″×30 m → 12+12+6 m, 2 field welds `W-CRAFT-30M-1/2`; U-envelope 2 spools; NPS 24 Sch40 (B36.10 OD 610 / t 17.48, 255.425 kg/m) × 10 m splits on 2 t. Rich pins P-1001 2/7/1/6, P-1002 5/12/4/8, G-2001 2/5/1/4, D-1010 2/1/1/0. Limits: 12.0 m / 2000 kg / ISO 668 Table 1 1AA shop box 12.0×2.4×2.4 m |
+| B17 | **PASS** | Crafted 30 m → 3 sheets; each `dim_sum_mm == round(spool.length_m×1000)`; n/N, spool tag, cut lengths, BOM, field-weld ids on sheets 1–2 |
+| B18 | **PASS** | reportlab iso PDF pages=3=sheet count; GA PDF pages=1; pypdf text contains `CRAFT-30M` and `HEURISTIC — NOT FOR CONSTRUCTION` |
+| B19 | **PASS** | ifcopenshell.validate schema+express errors=0; axis=30.000000 route=30.000000; unique IfcRelConnectsPorts pairs=2 for 3 segments |
+| B20 | **PASS** | B31.3 341.4.1 Normal Fluid Service 5% RT (ceil → 1 of 2 BW); csv=2 xlsx=2; map count == B16 weld_count=2; 6″ Sch40 wall 7.11 mm |
+| B21 | **PASS** | Crafted pipe_m=30.0; rich three-level spool↔line↔IWP/WP rel err 0.000000 (≤0.1%); keys pipe_m/kg, fittings, flanges/bolts/gaskets, supports, paint/insulation m² |
+
+B04, B22–B40: still `_b_unstarted` FAIL (`evidence_files=0`).
+
+**ACCEPTANCE: 18/40 PASS** locally (B01 + B05–B21) without token (B02/B03 FAIL token/parent sha).
+

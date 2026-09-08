@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased (M3 B16–B21 — not v2.0.0)
+
+- B16: shop-spool PCF split ≤12 m / ≤2 t / ISO 668 1AA 12.0×2.4×2.4 m envelope; field welds `W-<line>-<n>`; `SPOOL-IDENTIFIER`; rich pins.
+- B17: one 30° iso SVG sheet per spool (n/N, weld symbols, spool tag, cut lengths, BOM); dim_sum = spool developed length.
+- B18: iso + GA PDF via reportlab; page count = sheet count; pypdf extractable line number + NOT FOR CONSTRUCTION.
+- B19: IFC4 Axis polyline + IfcRelConnectsPorts; ifcopenshell.validate schema+express 0 errors; axis vs route ±0.5%.
+- B20: weld map / NDT schedule — B31.3 341.4.1 Normal Fluid Service 5% RT; .csv + .xlsx; counts = B16.
+- B21: MTO per spool / line / IWP / WP; pipe m+kg, fittings, flanges/bolts/gaskets, MSS supports, paint/insulation m²; ±0.1%.
+
 ## Unreleased (M2 B10–B15 — not v2.0.0)
 
 - B10: `exporters/ifc_in.py` reads IFC4 structure/equipment → AABB/capsule; vendored ifcopenshell rack; 4 lines A* with zero penetration.

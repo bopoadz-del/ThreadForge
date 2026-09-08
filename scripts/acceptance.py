@@ -1460,6 +1460,272 @@ def B15() -> tuple[bool, str]:
     return ok, f"pytest_rc={proc.returncode} passed={npass} tail={text.strip().splitlines()[-1] if text.strip() else '-'}"
 
 
+def B16() -> tuple[bool, str]:
+    """Shop spools ≤12 m / ≤2 t / ISO 668 envelope; field welds; W- ids; pins."""
+    from threadforge.generators import write_pcf_text
+    from threadforge.ingest_dexpi import load_fixture
+    from threadforge.pcf_reader import parse_pcf
+    from threadforge.routing import generate_routes_astar
+    from threadforge.spooling import (
+        ENVELOPE_CITE,
+        SHOP_MAX_LENGTH_M,
+        SHOP_MAX_MASS_KG,
+        crafted_envelope_u,
+        crafted_mass_24in,
+        crafted_straight_30m,
+        limits_ok,
+    )
+    from threadforge.tables import mass_per_m
+
+    if SHOP_MAX_LENGTH_M != 12.0 or SHOP_MAX_MASS_KG != 2000.0:
+        return False, f"limits L={SHOP_MAX_LENGTH_M} M={SHOP_MAX_MASS_KG}"
+    if "ISO 668" not in ENVELOPE_CITE or "Table 1" not in ENVELOPE_CITE:
+        return False, f"envelope_cite={ENVELOPE_CITE}"
+
+    g30 = crafted_straight_30m()
+    write_pcf_text(g30, "LINE-CRAFT-30M")
+    r30 = g30.routes["LINE-CRAFT-30M"]["spools"]
+    lens = [round(sp["length_m"], 6) for sp in r30["spools"]]
+    text30 = write_pcf_text(g30, "LINE-CRAFT-30M")
+    doc = parse_pcf(text30)
+    spool_ids = {c.attrs.get("SPOOL-IDENTIFIER") for c in doc.components if c.attrs.get("SPOOL-IDENTIFIER")}
+    weld_ids = [w["weld_id"] for w in r30["welds"]]
+    c30 = (
+        limits_ok(r30)
+        and r30["spool_count"] == 3
+        and lens == [12.0, 12.0, 6.0]
+        and r30["field_weld_count"] == 2
+        and weld_ids == ["W-CRAFT-30M-1", "W-CRAFT-30M-2"]
+        and "S-CRAFT-30M-01" in text30
+        and spool_ids >= {"S-CRAFT-30M-01", "S-CRAFT-30M-02", "S-CRAFT-30M-03"}
+    )
+
+    genv = crafted_envelope_u()
+    write_pcf_text(genv, "LINE-CRAFT-ENV")
+    renv = genv.routes["LINE-CRAFT-ENV"]["spools"]
+    cenv = limits_ok(renv) and renv["spool_count"] == 2 and renv["field_weld_count"] == 1
+
+    g24 = crafted_mass_24in()
+    write_pcf_text(g24, "LINE-CRAFT-24")
+    r24 = g24.routes["LINE-CRAFT-24"]["spools"]
+    kg_m = mass_per_m('24"', "40")
+    cmass = (
+        limits_ok(r24)
+        and r24["spool_count"] == 2
+        and kg_m * 10.0 > 2000.0
+        and all(sp["mass_kg"] <= 2000.0 + 1e-3 for sp in r24["spools"])
+        and abs(kg_m - 255.425) < 0.01
+    )
+
+    g = load_fixture("sample_pid_rich.xml")
+    generate_routes_astar(g)
+    got: dict[str, dict[str, int]] = {}
+    for lid in g.pipelines:
+        write_pcf_text(g, lid)
+        rep = g.routes[lid]["spools"]
+        if not limits_ok(rep):
+            return False, f"rich oversize {lid}"
+        got[lid] = {
+            "spools": int(rep["spool_count"]),
+            "welds": int(rep["weld_count"]),
+            "field": int(rep["field_weld_count"]),
+            "shop": int(rep["shop_weld_count"]),
+        }
+    pinned = {
+        "LINE-200-D-1010": {"spools": 2, "welds": 1, "field": 1, "shop": 0},
+        "LINE-200-P-1001": {"spools": 2, "welds": 7, "field": 1, "shop": 6},
+        "LINE-200-P-1002": {"spools": 5, "welds": 12, "field": 4, "shop": 8},
+        "LINE-210-G-2001": {"spools": 2, "welds": 5, "field": 1, "shop": 4},
+    }
+    ok = c30 and cenv and cmass and got == pinned
+    return ok, f"craft30={lens} env={renv['spool_count']} mass24={r24['spool_count']} rich={got}"
+
+
+def B17() -> tuple[bool, str]:
+    """Iso per spool sheet: n/N, welds, cuts, BOM; dim_sum = spool length."""
+    from threadforge.generators import generate_isometric, write_pcf_text
+    from threadforge.iso_sheets import dim_sum_mm_from_svg, sheet_iso_svg
+    from threadforge.spooling import crafted_straight_30m
+
+    g = crafted_straight_30m()
+    write_pcf_text(g, "LINE-CRAFT-30M")
+    art = generate_isometric(g, "LINE-CRAFT-30M")
+    sheets = art.payload.get("sheets") or []
+    if len(sheets) != 3:
+        return False, f"sheets={len(sheets)}"
+    ok_dims = True
+    for i, sh in enumerate(sheets, start=1):
+        want = int(round(float(sh["length_m"]) * 1000))
+        if sh.get("dim_sum_mm") != want or sh.get("sheet") != i or sh.get("n_of") != 3:
+            ok_dims = False
+        if not sh.get("cut_lengths_m") or not sh.get("bom"):
+            ok_dims = False
+        svg = sheet_iso_svg(
+            g.routes["LINE-CRAFT-30M"]["spools"]["spools"][i - 1],
+            line_number="CRAFT-30M",
+            sheet_n=i,
+            sheet_n_of=3,
+            welds=[
+                w
+                for w in g.routes["LINE-CRAFT-30M"]["spools"]["welds"]
+                if w["spool_id"] == sh["spool_id"]
+            ],
+            bom=sh.get("bom"),
+        )
+        if dim_sum_mm_from_svg(svg) != want or f"sheet {i}/3" not in svg:
+            ok_dims = False
+        if "NOT FOR CONSTRUCTION" not in svg or sh["spool_id"] not in svg:
+            ok_dims = False
+        if i < 3 and f"W-CRAFT-30M-{i}" not in svg:
+            ok_dims = False
+    ok = ok_dims and art.payload.get("sheet_count") == 3 and art.payload.get("iso_angle_deg") == 30
+    return ok, f"sheets={len(sheets)} dims={ok_dims} n_of={sheets[0].get('n_of')}"
+
+
+def B18() -> tuple[bool, str]:
+    """Iso + GA PDF; page count = sheet count; pypdf has line + NFC."""
+    from threadforge.exporters.pdf import NFC, export_ga_pdf, export_iso_pdf, extract_pdf_text, pdf_page_count
+    from threadforge.generators import generate_isometric, write_pcf_text
+    from threadforge.spooling import crafted_straight_30m
+
+    g = crafted_straight_30m()
+    write_pcf_text(g, "LINE-CRAFT-30M")
+    n_sheets = int((generate_isometric(g, "LINE-CRAFT-30M").payload or {}).get("sheet_count") or 0)
+    with tempfile.TemporaryDirectory() as td:
+        iso_p = Path(td) / "iso.pdf"
+        ga_p = Path(td) / "ga.pdf"
+        export_iso_pdf(g, "LINE-CRAFT-30M", iso_p)
+        export_ga_pdf(g, ga_p)
+        iso_pages = pdf_page_count(iso_p)
+        ga_pages = pdf_page_count(ga_p)
+        iso_txt = extract_pdf_text(iso_p)
+        ga_txt = extract_pdf_text(ga_p)
+    ok = (
+        iso_pages == n_sheets == 3
+        and ga_pages == 1
+        and "CRAFT-30M" in iso_txt
+        and "CRAFT-30M" in ga_txt
+        and NFC in iso_txt
+        and NFC in ga_txt
+    )
+    return ok, f"iso_pages={iso_pages} sheets={n_sheets} ga_pages={ga_pages} nfc=iso+ga"
+
+
+def B19() -> tuple[bool, str]:
+    """IFC4 validate schema+express 0 errors; axis ±0.5%; IfcRelConnectsPorts."""
+    try:
+        import ifcopenshell
+    except ImportError:
+        return False, "ifcopenshell missing"
+    from threadforge.exporters.ifc import (
+        axis_length_m,
+        export_ifc4,
+        route_length_m,
+        unique_port_pairs,
+        validate_ifc4,
+    )
+    from threadforge.generators import write_pcf_text
+    from threadforge.spooling import crafted_straight_30m
+
+    g = crafted_straight_30m()
+    write_pcf_text(g, "LINE-CRAFT-30M")
+    with tempfile.TemporaryDirectory() as td:
+        path = Path(td) / "m.ifc"
+        art = export_ifc4(g, path)
+        val = validate_ifc4(path, express_rules=True)
+        model = ifcopenshell.open(str(path))
+        axis = axis_length_m(model)
+        route = route_length_m(list(g.routes.values()))
+        segs = model.by_type("IfcPipeSegment")
+        pairs = unique_port_pairs(model)
+    rel_ok = route > 0 and abs(axis - route) / route <= 0.005
+    ports_ok = len(segs) >= 2 and len(pairs) == len(segs) - 1
+    ok = val["n_errors"] == 0 and rel_ok and ports_ok
+    return ok, (
+        f"errors={val['n_errors']} axis={axis:.6f} route={route:.6f} "
+        f"pairs={len(pairs)} segs={len(segs)} payload_links={art.payload.get('port_links')}"
+    )
+
+
+def B20() -> tuple[bool, str]:
+    """Weld map + 5% RT B31.3 341.4.1; csv/xlsx; counts == B16."""
+    import csv
+
+    from openpyxl import load_workbook
+
+    from threadforge.generators import write_pcf_text
+    from threadforge.spooling import crafted_straight_30m
+    from threadforge.tables import B31_3_341_4_1_CITE, B31_3_341_4_1_NORMAL_RT_PCT
+    from threadforge.weld_ndt import export_weld_ndt, n_rt_required
+
+    if B31_3_341_4_1_NORMAL_RT_PCT != 5.0 or "341.4.1" not in B31_3_341_4_1_CITE:
+        return False, f"pct={B31_3_341_4_1_NORMAL_RT_PCT} cite={B31_3_341_4_1_CITE}"
+    g = crafted_straight_30m()
+    write_pcf_text(g, "LINE-CRAFT-30M")
+    b16 = int(g.routes["LINE-CRAFT-30M"]["spools"]["weld_count"])
+    with tempfile.TemporaryDirectory() as td:
+        art = export_weld_ndt(g, Path(td))
+        p = art.payload or {}
+        csv_p = Path(td) / "weld" / "weld_ndt.csv"
+        xlsx_p = Path(td) / "weld" / "weld_ndt.xlsx"
+        with csv_p.open(encoding="utf-8") as fh:
+            csv_n = sum(1 for _ in csv.DictReader(fh))
+        wb = load_workbook(xlsx_p)
+        xlsx_n = wb["weld_ndt"].max_row - 1
+    ok = (
+        p.get("weld_count") == b16 == 2
+        and p.get("reconcile") is True
+        and p.get("rt_selected") == n_rt_required(2)
+        and csv_n == b16
+        and xlsx_n == b16
+        and "341.4.1" in (p.get("citation") or "")
+    )
+    return ok, f"b16={b16} map={p.get('weld_count')} rt={p.get('rt_selected')} csv={csv_n} xlsx={xlsx_n}"
+
+
+def B21() -> tuple[bool, str]:
+    """MTO per spool/line/IWP/WP; three-level totals ±0.1 %."""
+    from threadforge.generators import build_work_packages, write_pcf_text
+    from threadforge.ingest_dexpi import load_fixture
+    from threadforge.mto import RECONCILE_TOL, build_mto
+    from threadforge.routing import generate_routes_astar
+    from threadforge.spooling import crafted_straight_30m
+
+    g30 = crafted_straight_30m()
+    write_pcf_text(g30, "LINE-CRAFT-30M")
+    p30 = build_mto(g30)
+    rec30 = p30["reconcile"]["pipe_m"]
+    craft_ok = (
+        p30["ok"]
+        and abs(rec30["spool"] - 30.0) < 1e-6
+        and rec30["spool_vs_line"] <= RECONCILE_TOL
+        and rec30["line_vs_iwp"] <= RECONCILE_TOL
+        and rec30["line_vs_wp"] <= RECONCILE_TOL
+        and len(p30["per_spool"]) == 3
+    )
+    g = load_fixture("sample_pid_rich.xml")
+    generate_routes_astar(g)
+    build_work_packages(g)
+    for lid in g.pipelines:
+        write_pcf_text(g, lid)
+    pr = build_mto(g)
+    rec = pr["reconcile"]
+    need = {"pipe_m", "pipe_kg", "fittings_count", "flanges", "bolts", "gaskets", "supports", "paint_m2", "insulation_m2"}
+    keys_ok = need.issubset(pr["per_spool"][0]) and need.issubset(pr["per_line"][0])
+    rich_ok = (
+        pr["ok"]
+        and keys_ok
+        and rec["pipe_m"]["spool_vs_line"] <= RECONCILE_TOL
+        and rec["pipe_m"]["line_vs_iwp"] <= RECONCILE_TOL
+        and rec["pipe_kg"]["line_vs_wp"] <= RECONCILE_TOL
+    )
+    ok = craft_ok and rich_ok
+    return ok, (
+        f"craft_m={rec30['spool']} rich_ok={rich_ok} "
+        f"s_vs_l={rec['pipe_m']['spool_vs_line']:.6f} l_vs_iwp={rec['pipe_m']['line_vs_iwp']:.6f}"
+    )
+
+
 def _b_unstarted(bid: str) -> Callable[[], tuple[bool, str]]:
     def _fn() -> tuple[bool, str]:
         ev_dir = ROOT / "artifacts" / "ci"
@@ -1521,6 +1787,12 @@ _B_IMPL: dict[str, Callable[[], tuple[bool, str]]] = {
     "B13": B13,
     "B14": B14,
     "B15": B15,
+    "B16": B16,
+    "B17": B17,
+    "B18": B18,
+    "B19": B19,
+    "B20": B20,
+    "B21": B21,
 }
 
 B_CHECKS: list[tuple[str, Callable[[], tuple[bool, str]]]] = [

@@ -113,10 +113,56 @@ def probe_tools_auth_mutation() -> tuple[bool, str]:
     return True, f"killed tools_auth mutant baseline={baseline} mutated={mutated}"
 
 
+def probe_spool_12m_mutation() -> tuple[bool, str]:
+    """Mutate 12 m shop length; 30 m 6\" line must no longer pin 12+12+6."""
+    import threadforge.spooling as S
+    from threadforge.generators import write_pcf_text
+    from threadforge.spooling import SHOP_MAX_LENGTH_M, crafted_straight_30m
+
+    g = crafted_straight_30m()
+    write_pcf_text(g, "LINE-CRAFT-30M")
+    baseline = [round(sp["length_m"], 6) for sp in g.routes["LINE-CRAFT-30M"]["spools"]["spools"]]
+    if baseline != [12.0, 12.0, 6.0]:
+        return False, f"baseline lengths={baseline}"
+    old = S.SHOP_MAX_LENGTH_M
+    S.SHOP_MAX_LENGTH_M = 8.0
+    try:
+        g2 = crafted_straight_30m()
+        write_pcf_text(g2, "LINE-CRAFT-30M")
+        mutated = [round(sp["length_m"], 6) for sp in g2.routes["LINE-CRAFT-30M"]["spools"]["spools"]]
+    finally:
+        S.SHOP_MAX_LENGTH_M = old
+    killed = mutated != [12.0, 12.0, 6.0] and max(mutated) <= 8.0 + 1e-6
+    if not killed:
+        return False, f"12m mutation survived mutated={mutated}"
+    return True, f"killed 12m mutant baseline={baseline} mutated={mutated} limit={SHOP_MAX_LENGTH_M}"
+
+
+def probe_ndt_5pct_mutation() -> tuple[bool, str]:
+    """Mutate B31.3 5% RT; n=40 must no longer require 2 RT welds."""
+    from threadforge import tables as T
+    from threadforge.weld_ndt import n_rt_required
+
+    if n_rt_required(40) != 2:
+        return False, f"baseline n_rt(40)={n_rt_required(40)}"
+    old = T.B31_3_341_4_1_NORMAL_RT_PCT
+    T.B31_3_341_4_1_NORMAL_RT_PCT = 50.0
+    try:
+        # n_rt_required defaults to the module-imported constant; pass mutated pct
+        mutated = n_rt_required(40, pct=T.B31_3_341_4_1_NORMAL_RT_PCT)
+    finally:
+        T.B31_3_341_4_1_NORMAL_RT_PCT = old
+    if mutated == 2:
+        return False, f"5% mutation survived mutated={mutated}"
+    return True, f"killed 5% RT mutant baseline=2 mutated={mutated}"
+
+
 PROBES: list[tuple[str, Callable[[], tuple[bool, str]]]] = [
     ("P01_od_mm", probe_od_mm_mutation),
     ("P02_gapped_pcf", probe_gapped_pcf_killed),
     ("P03_tools_auth", probe_tools_auth_mutation),
+    ("P04_spool_12m", probe_spool_12m_mutation),
+    ("P05_ndt_5pct", probe_ndt_5pct_mutation),
 ]
 
 
