@@ -184,3 +184,85 @@ A27/A28 name HEAD's parent sha (`3482773bee01f95d4014a6f932897805583cefe6`).
 | A28 CI run | `acceptance.py` present | `artifacts/ci/ci_run.json` from Actions run [34170106380](https://github.com/bopoadz-del/ThreadForge/actions/runs/34170106380); `status=completed`; jobs test=success docker=success (acceptance failed on parent for missing evidence/tag — bootstrap) |
 | A30 release tag | changelog / any v1 tag | `tag=v1.0.1` local+remote peeled sha match (measured after `make release` / tag push) |
 
+---
+
+## v2.0.0 M0 — B01–B40 measured on v1.0.1 tip
+
+Recorded 2026-09-08 on checkout `0005ae911183282079f7027e7877e5da060df0e1` (`v1.0.1^{commit}`).
+New harness (`scripts/acceptance.py` B01–B40 / rewritten A27–A28) was run **against that tip** before M0 commits.
+HEAD^ at measurement = `3482773bee01f95d4014a6f932897805583cefe6`.
+Do not invent evidence. B01–B03 are specified in M0; B04–B40 are M1–M7 and have no PASS path yet.
+
+### B01 owner-gated GitHub steps
+
+Measured via GitHub API: repository `default_branch` is already `main`.
+`git ls-remote --heads origin` at v1.0.1 tip returned **4** refs (B01 FAIL).
+
+To make B01 PASS (fast-forward only; **no merge commit on main**):
+
+1. Fast-forward `main` to the M0 tip: `git push origin <m0-sha>:main` (FF-only).
+2. Delete every other head: `master`, leftover `cursor/*` agent branches.
+3. Re-measure: `git ls-remote --heads origin` must print exactly `refs/heads/main`.
+4. Tags `v1.0.0` and `v1.0.1` must be ancestors of that `main` tip. Do **not** tag `v2.0.0` in M0.
+5. If GitHub refuses to delete `master` because UI still treats it as default, owner must switch
+   **Settings → General → Default branch → main** first, then delete `master`.
+
+### New checks vs v1.0.1 tip (must FAIL)
+
+| Check | Result | Measured reason |
+|---|---|---|
+| B01 | **FAIL** | `git ls-remote --heads origin` count=4: `cursor/k5-v101-release-f33a`, `cursor/land-full-sot-k1-k4-6685`, `main`, `master` — want `[refs/heads/main]` |
+| B02 (no token) | **FAIL** | `token absent` (never PASS without token/network) |
+| B02 (token present) | **FAIL** | HEAD^ `3482773bee01f95d4014a6f932897805583cefe6` Actions runs n=3; e.g. run 34170107971 `conclusion=failure` jobs `{acceptance:failure, docker:success, test:success}` missing=`acceptance,probes,publish` |
+| B03 / A27 | **FAIL** | `artifacts/ci/docker_health.json` names parent sha but `health_status=None` `health_body=no` `tools_unauth_status=None` `tools_auth_status=None` `image_digest=-` (old `{status:healthy}` only) |
+| A28 | **FAIL** | same as B02 (`token absent` without `GITHUB_TOKEN`/`GH_TOKEN`) |
+
+### B01–B40 table (v1.0.1 tip)
+
+| ID | Result | Reason |
+|---|---|---|
+| B01 | FAIL | heads=4 (main, master, 2× cursor/*); want only `refs/heads/main` |
+| B02 | FAIL | token absent, or with token: HEAD^ CI missing `probes`/`publish` and `acceptance≠success` |
+| B03 | FAIL | docker_health.json lacks health_status=200, health_body, tools_unauth=401, tools_auth=200, image_digest sha256:… |
+| B04 | FAIL | not in M0; M1–M7 not started; evidence_files=0 |
+| B05 | FAIL | not in M0; M1–M7 not started; evidence_files=0 |
+| B06 | FAIL | not in M0; M1–M7 not started; evidence_files=0 |
+| B07 | FAIL | not in M0; M1–M7 not started; evidence_files=0 |
+| B08 | FAIL | not in M0; M1–M7 not started; evidence_files=0 |
+| B09 | FAIL | not in M0; M1–M7 not started; evidence_files=0 |
+| B10 | FAIL | not in M0; M1–M7 not started; evidence_files=0 |
+| B11 | FAIL | not in M0; M1–M7 not started; evidence_files=0 |
+| B12 | FAIL | not in M0; M1–M7 not started; evidence_files=0 |
+| B13 | FAIL | not in M0; M1–M7 not started; evidence_files=0 |
+| B14 | FAIL | not in M0; M1–M7 not started; evidence_files=0 |
+| B15 | FAIL | not in M0; M1–M7 not started; evidence_files=0 |
+| B16 | FAIL | not in M0; M1–M7 not started; evidence_files=0 |
+| B17 | FAIL | not in M0; M1–M7 not started; evidence_files=0 |
+| B18 | FAIL | not in M0; M1–M7 not started; evidence_files=0 |
+| B19 | FAIL | not in M0; M1–M7 not started; evidence_files=0 |
+| B20 | FAIL | not in M0; M1–M7 not started; evidence_files=0 |
+| B21 | FAIL | not in M0; M1–M7 not started; evidence_files=0 |
+| B22 | FAIL | not in M0; M1–M7 not started; evidence_files=0 |
+| B23 | FAIL | not in M0; M1–M7 not started; evidence_files=0 |
+| B24 | FAIL | not in M0; M1–M7 not started; evidence_files=0 |
+| B25 | FAIL | not in M0; M1–M7 not started; evidence_files=0 |
+| B26 | FAIL | not in M0; M1–M7 not started; evidence_files=0 |
+| B27 | FAIL | not in M0; M1–M7 not started; evidence_files=0 |
+| B28 | FAIL | not in M0; M1–M7 not started; evidence_files=0 |
+| B29 | FAIL | not in M0; M1–M7 not started; evidence_files=0 |
+| B30 | FAIL | not in M0; M1–M7 not started; evidence_files=0 |
+| B31 | FAIL | not in M0; M1–M7 not started; evidence_files=0 |
+| B32 | FAIL | not in M0; M1–M7 not started; evidence_files=0 |
+| B33 | FAIL | not in M0; M1–M7 not started; evidence_files=0 |
+| B34 | FAIL | not in M0; M1–M7 not started; evidence_files=0 |
+| B35 | FAIL | not in M0; M1–M7 not started; evidence_files=0 |
+| B36 | FAIL | not in M0; M1–M7 not started; evidence_files=0 |
+| B37 | FAIL | not in M0; M1–M7 not started; evidence_files=0 |
+| B38 | FAIL | not in M0; M1–M7 not started; evidence_files=0 |
+| B39 | FAIL | not in M0; M1–M7 not started; evidence_files=0 |
+| B40 | FAIL | not in M0; M1–M7 not started; evidence_files=0 |
+
+**ACCEPTANCE: 0/40 PASS** on v1.0.1 tip (new B-lines). A01–A26 and A29–A30 still PASS; rewritten A27/A28 FAIL as above (28/30 A-lines).
+
+Walls (NWD/RVT/DGN/DWG, vendor live APIs, ISOGEN cert, client data, web UI): not hit in M0.
+

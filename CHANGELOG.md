@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased (M0 / K6 — not v2.0.0)
+
+- K6 standing gate: `dump_openapi.py` + `diff` + `mutation_probes.py` (killed-mutation, not no-ops).
+- B01: `main` is the only origin head; tags v1.0.0 / v1.0.1 must sit on it (owner-gated collapse documented).
+- B02 / A28: HEAD^ Actions `conclusion == "success"` with jobs `test`, `docker`, `acceptance`, `probes`, `publish`; token/network absent → FAIL.
+- B03 / A27: `docker_health.json` for HEAD^ must carry health_status 200, health_body, tools_unauth 401, tools_auth 200, image_digest `sha256:…`.
+- CI jobs `probes` and `publish` (GHCR) added so B02's job list is honest.
+
 ## v1.0.1 — 2026-09-07
 
 - K1: Docker CI job writes `artifacts/ci/docker_health.json`; A27 requires that committed file and HEAD evidence must name the parent sha.
