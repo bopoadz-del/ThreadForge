@@ -1,5 +1,5 @@
 {
-  "sha": "f0dfdd8272dc25bf86748f8b9cd1b6383e5b6627",
+  "sha": "e9dcddef0bd8e54384eaee356ff4c998c7d38399",
   "health_status": 200,
   "health_body": {
     "status": "ok",
@@ -11,5 +11,5 @@
   },
   "tools_unauth_status": 401,
   "tools_auth_status": 200,
-  "image_digest": "sha256:60baf0397996b106fd0c5f58a9f961986cfcfc2a2d74303ef5eb64fd24b86013"
+  "image_digest": "sha256:df069ead9d928002d16c672eaa7440e3e919e137f2ec818f215290b69740fd69"
 }
