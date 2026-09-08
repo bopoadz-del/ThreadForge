@@ -332,10 +332,10 @@ def parse_dexpi_xml(source: Union[str, Path, bytes]) -> TopologyGraph:
         )
         if geom is not None:
             bounds = {
-                "xmin": float(_attr(geom, "Xmin", "0")),
-                "ymin": float(_attr(geom, "Ymin", "0")),
-                "xmax": float(_attr(geom, "Xmax", "0")),
-                "ymax": float(_attr(geom, "Ymax", "0")),
+                "xmin": _opt_float(geom, "Xmin") or 0.0,
+                "ymin": _opt_float(geom, "Ymin") or 0.0,
+                "xmax": _opt_float(geom, "Xmax") or 0.0,
+                "ymax": _opt_float(geom, "Ymax") or 0.0,
             }
         asset_3d = _attr(eq_el, "Asset3D") or _attr(eq_el, "ModelRef") or None
         volume_id = _attr(eq_el, "VolumeID") or None
@@ -720,12 +720,12 @@ def parse_dexpi_xml(source: Union[str, Path, bytes]) -> TopologyGraph:
                 DesignVolume(
                     id=vid,
                     name=_attr(vol_el, "Name") or vid,
-                    xmin=float(_attr(vol_el, "Xmin", "0")),
-                    ymin=float(_attr(vol_el, "Ymin", "0")),
-                    zmin=float(_attr(vol_el, "Zmin", "0")),
-                    xmax=float(_attr(vol_el, "Xmax", "10")),
-                    ymax=float(_attr(vol_el, "Ymax", "10")),
-                    zmax=float(_attr(vol_el, "Zmax", "10")),
+                    xmin=_opt_float(vol_el, "Xmin") or 0.0,
+                    ymin=_opt_float(vol_el, "Ymin") or 0.0,
+                    zmin=_opt_float(vol_el, "Zmin") or 0.0,
+                    xmax=_opt_float(vol_el, "Xmax") or 10.0,
+                    ymax=_opt_float(vol_el, "Ymax") or 10.0,
+                    zmax=_opt_float(vol_el, "Zmax") or 10.0,
                     color=_attr(vol_el, "Color") or None,
                     site=_attr(vol_el, "Site") or None,
                     plot_plan_ref=_attr(vol_el, "PlotPlan") or None,

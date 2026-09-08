@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased (M1 B05–B09 — not v2.0.0)
+
+- B05: vendor all 35 DEXPI 1.3 TrainingTestCases example P&IDs (CC-BY-4.0) with sha manifest + `pins.json`.
+
 ## Unreleased (M0 / K6 — not v2.0.0)
 
 - K6 standing gate: `dump_openapi.py` + `diff` + `mutation_probes.py` (killed-mutation, not no-ops).

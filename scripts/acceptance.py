@@ -992,6 +992,40 @@ def B03() -> tuple[bool, str]:
     return _docker_health_five()
 
 
+def B05() -> tuple[bool, str]:
+    """Vendor TrainingTestCases example PIDs: ingest every file; counts match pins.json."""
+    from threadforge.dexpi_public import entity_counts, file_sha256, load_pins, vendor_xmls
+    from threadforge.ingest_dexpi import parse_dexpi_xml
+
+    xmls = vendor_xmls()
+    pins = load_pins()["counts"]
+    if len(xmls) != len(pins):
+        return False, f"xmls={len(xmls)} pins={len(pins)}"
+    exceptions: list[str] = []
+    mismatches: list[str] = []
+    for path in xmls:
+        try:
+            graph = parse_dexpi_xml(path)
+        except Exception as exc:  # noqa: BLE001
+            exceptions.append(f"{path.name}:{type(exc).__name__}")
+            continue
+        got = entity_counts(graph)
+        exp = pins.get(path.name)
+        if exp is None:
+            mismatches.append(f"{path.name}:unpinned")
+            continue
+        if file_sha256(path) != exp.get("sha256"):
+            mismatches.append(f"{path.name}:sha")
+        for key in ("pipelines", "equipment", "nozzles", "instruments"):
+            if int(got[key]) != int(exp[key]):
+                mismatches.append(f"{path.name}:{key}={got[key]} want={exp[key]}")
+    ok = not exceptions and not mismatches and len(xmls) >= 30
+    return ok, (
+        f"files={len(xmls)} exceptions={exceptions or 'none'} "
+        f"mismatches={mismatches[:6] or 'none'}"
+    )
+
+
 def _b_unstarted(bid: str) -> Callable[[], tuple[bool, str]]:
     def _fn() -> tuple[bool, str]:
         ev_dir = ROOT / "artifacts" / "ci"
@@ -1038,11 +1072,17 @@ CHECKS = [
     ("A30", A30),
 ]
 
+_B_IMPL: dict[str, Callable[[], tuple[bool, str]]] = {
+    "B01": B01,
+    "B02": B02,
+    "B03": B03,
+    "B05": B05,
+}
+
 B_CHECKS: list[tuple[str, Callable[[], tuple[bool, str]]]] = [
-    ("B01", B01),
-    ("B02", B02),
-    ("B03", B03),
-] + [(f"B{n:02d}", _b_unstarted(f"B{n:02d}")) for n in range(4, 41)]
+    (f"B{n:02d}", _B_IMPL[f"B{n:02d}"] if f"B{n:02d}" in _B_IMPL else _b_unstarted(f"B{n:02d}"))
+    for n in range(1, 41)
+]
 
 
 def main() -> int:

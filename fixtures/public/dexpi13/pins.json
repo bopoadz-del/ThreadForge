@@ -1,0 +1,287 @@
+{
+  "schema": 1,
+  "source": "DEXPI TrainingTestCases dexpi 1.3/example pids",
+  "license": "CC-BY-4.0",
+  "counts": {
+    "C01V04-VER.EX01.xml": {
+      "pipelines": 23,
+      "equipment": 21,
+      "nozzles": 21,
+      "instruments": 6,
+      "sha256": "a2b172f04e0dcf9a668e158c6dee3b5fd0dd4e9027b572dc39e54470562b809c",
+      "bytes": 445726
+    },
+    "C02V03-VER.EX02.xml": {
+      "pipelines": 9,
+      "equipment": 8,
+      "nozzles": 11,
+      "instruments": 4,
+      "sha256": "dfe4323c18d018caa4b28ec789b3dbee21be73c6a07c7cbd0791ceebd322113b",
+      "bytes": 157666
+    },
+    "C03V04-VER.EX02.xml": {
+      "pipelines": 5,
+      "equipment": 0,
+      "nozzles": 0,
+      "instruments": 2,
+      "sha256": "a1c892f3bc21338c2546baf71e10abf11e3653b7cd6956b1a24bcfab0db88f14",
+      "bytes": 68507
+    },
+    "E01V02-VER.EX01.xml": {
+      "pipelines": 0,
+      "equipment": 3,
+      "nozzles": 0,
+      "instruments": 0,
+      "sha256": "654c73ecd3eff68940bf05f48436d8662652e4faa656c759fb24d458c0e9acfc",
+      "bytes": 4610
+    },
+    "E02V02-VER.EX01.xml": {
+      "pipelines": 0,
+      "equipment": 3,
+      "nozzles": 5,
+      "instruments": 0,
+      "sha256": "8bdab30cfa079009975f04d93b087a881473259a6c2e54fab2aefa7003732be6",
+      "bytes": 12280
+    },
+    "E03V01-VER.EX01.xml": {
+      "pipelines": 0,
+      "equipment": 2,
+      "nozzles": 1,
+      "instruments": 0,
+      "sha256": "a26bda5dda7d3b8bd6b661a5c2f8803463f94027e97ff142bcd3a0f35b8e1357",
+      "bytes": 3113
+    },
+    "E04V01-VER.EX01.xml": {
+      "pipelines": 0,
+      "equipment": 1,
+      "nozzles": 3,
+      "instruments": 0,
+      "sha256": "f40f8618b0f9a4e169bf1c43e93eb14fc478d49cd8607d2aee5452662211dbca",
+      "bytes": 2728
+    },
+    "E05V01-VER.EX01.xml": {
+      "pipelines": 0,
+      "equipment": 2,
+      "nozzles": 4,
+      "instruments": 0,
+      "sha256": "4e899b13e7eac2a12994c6e03ff8440e43f7c53297fae4cb9fbe26a93dc6e12c",
+      "bytes": 3978
+    },
+    "E06V01-VER.EX01.xml": {
+      "pipelines": 1,
+      "equipment": 2,
+      "nozzles": 6,
+      "instruments": 0,
+      "sha256": "2a6b4762cd1c85c9fcf329f885ca368769a84ebd5dbf5966c6a0781bb4038351",
+      "bytes": 6288
+    },
+    "E07V01-VER.EX01.xml": {
+      "pipelines": 0,
+      "equipment": 5,
+      "nozzles": 4,
+      "instruments": 0,
+      "sha256": "04ba63b74b4d90866e8de32e4b63d1fdba64699e699ef4a0fa018a14ffed77ac",
+      "bytes": 5175
+    },
+    "E08V01-VER.EX01.xml": {
+      "pipelines": 0,
+      "equipment": 5,
+      "nozzles": 4,
+      "instruments": 0,
+      "sha256": "942d3e1e16308d926f861b0f7265a1fa8053f9d2c309615d17ef6646659d6d04",
+      "bytes": 4263
+    },
+    "E09V01-VER.EX01.xml": {
+      "pipelines": 0,
+      "equipment": 1,
+      "nozzles": 0,
+      "instruments": 0,
+      "sha256": "861ff607e401ed84f3c9e54fa3ed3985d878fa087c1d50125360573185007f66",
+      "bytes": 1367
+    },
+    "E11V01-VER.EX01.xml": {
+      "pipelines": 0,
+      "equipment": 3,
+      "nozzles": 0,
+      "instruments": 0,
+      "sha256": "0636399a6eb1f6fc1062898de4f163ac9714864481f5b44ebf7fc1235e76850d",
+      "bytes": 4650
+    },
+    "E12V01-VER.EX01.xml": {
+      "pipelines": 0,
+      "equipment": 3,
+      "nozzles": 4,
+      "instruments": 0,
+      "sha256": "edbe65f609085d7d94b30c83e83a746515a85d813c325cf5508ad6e2c4bed3f6",
+      "bytes": 11286
+    },
+    "E13V01-VER.EX01.xml": {
+      "pipelines": 0,
+      "equipment": 1,
+      "nozzles": 0,
+      "instruments": 0,
+      "sha256": "fde56b4547e3b00e46c7b3d82ba0a249b10824cff1f0661a4df6bfaceeefe03d",
+      "bytes": 2924
+    },
+    "E14V01-VER.EX01.xml": {
+      "pipelines": 0,
+      "equipment": 1,
+      "nozzles": 0,
+      "instruments": 0,
+      "sha256": "8452c16b9f61cddbba5e94da7e2ee3469a0513957efb6cdda1536873cdb52628",
+      "bytes": 3588
+    },
+    "I01V01-VER.EX01.xml": {
+      "pipelines": 1,
+      "equipment": 1,
+      "nozzles": 1,
+      "instruments": 1,
+      "sha256": "fa9a947c0967f0fb9312eb6793354056d4f6b96e6f11425e924a07169d9b9de2",
+      "bytes": 4918
+    },
+    "I02V01-VER.EX01.xml": {
+      "pipelines": 1,
+      "equipment": 0,
+      "nozzles": 0,
+      "instruments": 1,
+      "sha256": "b3b8c59b7005e44e57ec56b8df407fed4115ee6411988eed4ba040ea834c291d",
+      "bytes": 5106
+    },
+    "I03V01-VER.EX01.xml": {
+      "pipelines": 2,
+      "equipment": 1,
+      "nozzles": 1,
+      "instruments": 1,
+      "sha256": "850f7d12e880b5768622f26b97238e70bb7df4687f3451a359a76124e5358364",
+      "bytes": 7212
+    },
+    "I04V01-VER.EX01.xml": {
+      "pipelines": 2,
+      "equipment": 0,
+      "nozzles": 0,
+      "instruments": 1,
+      "sha256": "91b301bad8f432feb5dfff46190830a9415c63fd9904485a700f9fda7dfc10b5",
+      "bytes": 7477
+    },
+    "I05V01-VER.EX01.xml": {
+      "pipelines": 2,
+      "equipment": 0,
+      "nozzles": 0,
+      "instruments": 4,
+      "sha256": "19cd0e7aef5238af1021d32e24b4cd2e46dd92e960c62727324a19d5384cab76",
+      "bytes": 12267
+    },
+    "I06V01-VER.EX01.xml": {
+      "pipelines": 1,
+      "equipment": 0,
+      "nozzles": 0,
+      "instruments": 3,
+      "sha256": "949b2bcf9bf42b7529171b3f5b3bdd722c5b324640b23ee6af4adc101f2cf79b",
+      "bytes": 12311
+    },
+    "I07V01-VER.EX01.xml": {
+      "pipelines": 1,
+      "equipment": 0,
+      "nozzles": 0,
+      "instruments": 3,
+      "sha256": "921f13ffe2f02f50e9b0569085b266eeddbe191244d16f40578fcf65912d5a78",
+      "bytes": 9990
+    },
+    "I08V01-VER.EX01.xml": {
+      "pipelines": 1,
+      "equipment": 0,
+      "nozzles": 0,
+      "instruments": 4,
+      "sha256": "f8eea1484780126434fe41cd940aa2685d9d1bd738fda0567ecd4a6e5fda1bac",
+      "bytes": 13989
+    },
+    "I09V01-VER.EX01.xml": {
+      "pipelines": 0,
+      "equipment": 1,
+      "nozzles": 1,
+      "instruments": 1,
+      "sha256": "b2a4bbf0ea128f7f0a204ae2b2414b168afd103d4cf4a12f4796bef8a600716d",
+      "bytes": 4134
+    },
+    "I10V01-VER.EX01.xml": {
+      "pipelines": 1,
+      "equipment": 0,
+      "nozzles": 0,
+      "instruments": 1,
+      "sha256": "3fe1c132d83b4f5d73e109117b2dcf4b37abebd861e1709a6a995548a5c74fd5",
+      "bytes": 3560
+    },
+    "I11V01-VER.EX01.xml": {
+      "pipelines": 1,
+      "equipment": 0,
+      "nozzles": 0,
+      "instruments": 1,
+      "sha256": "4f3b10c9eafe82cfb5806f51ae12e0348a55c09eb171782e5542d34a9b3155a5",
+      "bytes": 4308
+    },
+    "I12V01-VER.EX01.xml": {
+      "pipelines": 1,
+      "equipment": 0,
+      "nozzles": 0,
+      "instruments": 1,
+      "sha256": "e6b2cfae50a272d4ad2bf180c147a6f460c47d40f8739246789523d09b246024",
+      "bytes": 5122
+    },
+    "I13V01-VER.EX01.xml": {
+      "pipelines": 3,
+      "equipment": 0,
+      "nozzles": 0,
+      "instruments": 2,
+      "sha256": "20310c5d3cd076de9afa818a59a9ce885e87b5597bea4024e0f64e12bb33da48",
+      "bytes": 7321
+    },
+    "I14V01-VER.EX01.xml": {
+      "pipelines": 1,
+      "equipment": 0,
+      "nozzles": 0,
+      "instruments": 2,
+      "sha256": "5968128b25264d16a50f4a5b670af08edabb2b993207001c919a7b48bc7a1474",
+      "bytes": 5847
+    },
+    "I15V01-VER.EX01.xml": {
+      "pipelines": 0,
+      "equipment": 1,
+      "nozzles": 2,
+      "instruments": 1,
+      "sha256": "d588226c734060b5d30dfa6a84ab5e296fa89b749bb41b35c9f9863a57aa2a05",
+      "bytes": 6339
+    },
+    "P01V01-VER.EX01.xml": {
+      "pipelines": 1,
+      "equipment": 2,
+      "nozzles": 2,
+      "instruments": 0,
+      "sha256": "1c88ab8aec8ac9d721b454aa9dc1fe669e6efbea871a36e39beeb9a5fdac4076",
+      "bytes": 3684
+    },
+    "P02V01-VER.EX01.xml": {
+      "pipelines": 1,
+      "equipment": 1,
+      "nozzles": 1,
+      "instruments": 0,
+      "sha256": "6084e2bbaba4f018551f2db6744fba2976b95a15de172e6cf5f342df009f6611",
+      "bytes": 4259
+    },
+    "P03V01-VER.EX01.xml": {
+      "pipelines": 1,
+      "equipment": 1,
+      "nozzles": 1,
+      "instruments": 0,
+      "sha256": "7c5b3ef54e709e5aada7c59599181e56bd64a36f32b9965ef823afa88f0ca52f",
+      "bytes": 2903
+    },
+    "P04V01-VER.EX01.xml": {
+      "pipelines": 2,
+      "equipment": 1,
+      "nozzles": 2,
+      "instruments": 0,
+      "sha256": "535a01b3433bdceb0128db8369178c156507ee3d3dbdd9786eae5c30d1c9b543",
+      "bytes": 4651
+    }
+  }
+}

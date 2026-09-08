@@ -14,12 +14,29 @@
     "ok": true
   },
   {
+    "name": "LICENSE",
+    "url": "https://gitlab.com/api/v4/projects/dexpi%2FTrainingTestCases/repository/files/LICENSE/raw?ref=master",
+    "sha256": "7e7170e3cebf88a9f60c7b8421418323c09304da1af4d5e90f4da1dc1c8a2661",
+    "bytes": 18650,
+    "ok": true
+  },
+  {
     "name": "C01V04-VER.EX01.xml",
     "url": "https://gitlab.com/api/v4/projects/dexpi%2FTrainingTestCases/repository/files/dexpi%201.3%2Fexample%20pids%2FC01%20DEXPI%20Reference%20P%26ID%2FC01V04-VER.EX01.xml/raw?ref=master",
     "path": "dexpi 1.3/example pids/C01 DEXPI Reference P&ID/C01V04-VER.EX01.xml",
     "sha256": "a2b172f04e0dcf9a668e158c6dee3b5fd0dd4e9027b572dc39e54470562b809c",
     "bytes": 445726,
-    "ok": true
+    "ok": true,
+    "license": "CC-BY-4.0"
+  },
+  {
+    "name": "C02V03-VER.EX02.xml",
+    "url": "https://gitlab.com/api/v4/projects/dexpi%2FTrainingTestCases/repository/files/dexpi%201.3%2Fexample%20pids%2FC02%20Process%20Column%20%28BASF%29%2FC02V03-VER.EX02.xml/raw?ref=master",
+    "path": "dexpi 1.3/example pids/C02 Process Column (BASF)/C02V03-VER.EX02.xml",
+    "sha256": "dfe4323c18d018caa4b28ec789b3dbee21be73c6a07c7cbd0791ceebd322113b",
+    "bytes": 157666,
+    "ok": true,
+    "license": "CC-BY-4.0"
   },
   {
     "name": "C03V04-VER.EX02.xml",
@@ -27,7 +44,53 @@
     "path": "dexpi 1.3/example pids/C03 Piping (Equinor)/C03V04-VER.EX02.xml",
     "sha256": "a1c892f3bc21338c2546baf71e10abf11e3653b7cd6956b1a24bcfab0db88f14",
     "bytes": 68507,
-    "ok": true
+    "ok": true,
+    "license": "CC-BY-4.0"
+  },
+  {
+    "name": "E01V02-VER.EX01.xml",
+    "url": "https://gitlab.com/api/v4/projects/dexpi%2FTrainingTestCases/repository/files/dexpi%201.3%2Fexample%20pids%2FE01%20Tank%2FE01V02-VER.EX01.xml/raw?ref=master",
+    "path": "dexpi 1.3/example pids/E01 Tank/E01V02-VER.EX01.xml",
+    "sha256": "654c73ecd3eff68940bf05f48436d8662652e4faa656c759fb24d458c0e9acfc",
+    "bytes": 4610,
+    "ok": true,
+    "license": "CC-BY-4.0"
+  },
+  {
+    "name": "E02V02-VER.EX01.xml",
+    "url": "https://gitlab.com/api/v4/projects/dexpi%2FTrainingTestCases/repository/files/dexpi%201.3%2Fexample%20pids%2FE02%20Tank%20with%20Nozzles%2FE02V02-VER.EX01.xml/raw?ref=master",
+    "path": "dexpi 1.3/example pids/E02 Tank with Nozzles/E02V02-VER.EX01.xml",
+    "sha256": "8bdab30cfa079009975f04d93b087a881473259a6c2e54fab2aefa7003732be6",
+    "bytes": 12280,
+    "ok": true,
+    "license": "CC-BY-4.0"
+  },
+  {
+    "name": "E03V01-VER.EX01.xml",
+    "url": "https://gitlab.com/api/v4/projects/dexpi%2FTrainingTestCases/repository/files/dexpi%201.3%2Fexample%20pids%2FE03%20Pump%20With%20Nozzles%2FE03V01-VER.EX01.xml/raw?ref=master",
+    "path": "dexpi 1.3/example pids/E03 Pump With Nozzles/E03V01-VER.EX01.xml",
+    "sha256": "a26bda5dda7d3b8bd6b661a5c2f8803463f94027e97ff142bcd3a0f35b8e1357",
+    "bytes": 3113,
+    "ok": true,
+    "license": "CC-BY-4.0"
+  },
+  {
+    "name": "E04V01-VER.EX01.xml",
+    "url": "https://gitlab.com/api/v4/projects/dexpi%2FTrainingTestCases/repository/files/dexpi%201.3%2Fexample%20pids%2FE04%20HeatExchanger%20With%20Nozzles%2FE04V01-VER.EX01.xml/raw?ref=master",
+    "path": "dexpi 1.3/example pids/E04 HeatExchanger With Nozzles/E04V01-VER.EX01.xml",
+    "sha256": "f40f8618b0f9a4e169bf1c43e93eb14fc478d49cd8607d2aee5452662211dbca",
+    "bytes": 2728,
+    "ok": true,
+    "license": "CC-BY-4.0"
+  },
+  {
+    "name": "E05V01-VER.EX01.xml",
+    "url": "https://gitlab.com/api/v4/projects/dexpi%2FTrainingTestCases/repository/files/dexpi%201.3%2Fexample%20pids%2FE05%20Pump%20With%20Nozzles%20And%20HeatExchanger%20With%20Nozzles%2FE05V01-VER.EX01.xml/raw?ref=master",
+    "path": "dexpi 1.3/example pids/E05 Pump With Nozzles And HeatExchanger With Nozzles/E05V01-VER.EX01.xml",
+    "sha256": "4e899b13e7eac2a12994c6e03ff8440e43f7c53297fae4cb9fbe26a93dc6e12c",
+    "bytes": 3978,
+    "ok": true,
+    "license": "CC-BY-4.0"
   },
   {
     "name": "E06V01-VER.EX01.xml",
@@ -35,7 +98,206 @@
     "path": "dexpi 1.3/example pids/E06 Pump, HeatExchanger, Nozzles Connected With PNS/E06V01-VER.EX01.xml",
     "sha256": "2a6b4762cd1c85c9fcf329f885ca368769a84ebd5dbf5966c6a0781bb4038351",
     "bytes": 6288,
-    "ok": true
+    "ok": true,
+    "license": "CC-BY-4.0"
+  },
+  {
+    "name": "E07V01-VER.EX01.xml",
+    "url": "https://gitlab.com/api/v4/projects/dexpi%2FTrainingTestCases/repository/files/dexpi%201.3%2Fexample%20pids%2FE07%20PressureVessel%20with%20ColumnSections%2FE07V01-VER.EX01.xml/raw?ref=master",
+    "path": "dexpi 1.3/example pids/E07 PressureVessel with ColumnSections/E07V01-VER.EX01.xml",
+    "sha256": "04ba63b74b4d90866e8de32e4b63d1fdba64699e699ef4a0fa018a14ffed77ac",
+    "bytes": 5175,
+    "ok": true,
+    "license": "CC-BY-4.0"
+  },
+  {
+    "name": "E08V01-VER.EX01.xml",
+    "url": "https://gitlab.com/api/v4/projects/dexpi%2FTrainingTestCases/repository/files/dexpi%201.3%2Fexample%20pids%2FE08%20ProcessColumn%20with%20ColumnSections%2FE08V01-VER.EX01.xml/raw?ref=master",
+    "path": "dexpi 1.3/example pids/E08 ProcessColumn with ColumnSections/E08V01-VER.EX01.xml",
+    "sha256": "942d3e1e16308d926f861b0f7265a1fa8053f9d2c309615d17ef6646659d6d04",
+    "bytes": 4263,
+    "ok": true,
+    "license": "CC-BY-4.0"
+  },
+  {
+    "name": "E09V01-VER.EX01.xml",
+    "url": "https://gitlab.com/api/v4/projects/dexpi%2FTrainingTestCases/repository/files/dexpi%201.3%2Fexample%20pids%2FE09%20Tank%20with%20equipment%20bar%2FE09V01-VER.EX01.xml/raw?ref=master",
+    "path": "dexpi 1.3/example pids/E09 Tank with equipment bar/E09V01-VER.EX01.xml",
+    "sha256": "861ff607e401ed84f3c9e54fa3ed3985d878fa087c1d50125360573185007f66",
+    "bytes": 1367,
+    "ok": true,
+    "license": "CC-BY-4.0"
+  },
+  {
+    "name": "E11V01-VER.EX01.xml",
+    "url": "https://gitlab.com/api/v4/projects/dexpi%2FTrainingTestCases/repository/files/dexpi%201.3%2Fexample%20pids%2FE11%20Heat%20Exchanger%20with%20Chambers%20and%20Equipment%20Bar%2FE11V01-VER.EX01.xml/raw?ref=master",
+    "path": "dexpi 1.3/example pids/E11 Heat Exchanger with Chambers and Equipment Bar/E11V01-VER.EX01.xml",
+    "sha256": "0636399a6eb1f6fc1062898de4f163ac9714864481f5b44ebf7fc1235e76850d",
+    "bytes": 4650,
+    "ok": true,
+    "license": "CC-BY-4.0"
+  },
+  {
+    "name": "E12V01-VER.EX01.xml",
+    "url": "https://gitlab.com/api/v4/projects/dexpi%2FTrainingTestCases/repository/files/dexpi%201.3%2Fexample%20pids%2FE12%20Heat%20Exchanger%20with%20Chambers%2C%20Nozzles%20and%20Equipment%20Bar%2FE12V01-VER.EX01.xml/raw?ref=master",
+    "path": "dexpi 1.3/example pids/E12 Heat Exchanger with Chambers, Nozzles and Equipment Bar/E12V01-VER.EX01.xml",
+    "sha256": "edbe65f609085d7d94b30c83e83a746515a85d813c325cf5508ad6e2c4bed3f6",
+    "bytes": 11286,
+    "ok": true,
+    "license": "CC-BY-4.0"
+  },
+  {
+    "name": "E13V01-VER.EX01.xml",
+    "url": "https://gitlab.com/api/v4/projects/dexpi%2FTrainingTestCases/repository/files/dexpi%201.3%2Fexample%20pids%2FE13%20Tank%20with%20Plant%20Structure%20Information%2FE13V01-VER.EX01.xml/raw?ref=master",
+    "path": "dexpi 1.3/example pids/E13 Tank with Plant Structure Information/E13V01-VER.EX01.xml",
+    "sha256": "fde56b4547e3b00e46c7b3d82ba0a249b10824cff1f0661a4df6bfaceeefe03d",
+    "bytes": 2924,
+    "ok": true,
+    "license": "CC-BY-4.0"
+  },
+  {
+    "name": "E14V01-VER.EX01.xml",
+    "url": "https://gitlab.com/api/v4/projects/dexpi%2FTrainingTestCases/repository/files/dexpi%201.3%2Fexample%20pids%2FE14%20Tank%20with%20Standard%20Plant%20Structure%20Information%2FE14V01-VER.EX01.xml/raw?ref=master",
+    "path": "dexpi 1.3/example pids/E14 Tank with Standard Plant Structure Information/E14V01-VER.EX01.xml",
+    "sha256": "8452c16b9f61cddbba5e94da7e2ee3469a0513957efb6cdda1536873cdb52628",
+    "bytes": 3588,
+    "ok": true,
+    "license": "CC-BY-4.0"
+  },
+  {
+    "name": "I01V01-VER.EX01.xml",
+    "url": "https://gitlab.com/api/v4/projects/dexpi%2FTrainingTestCases/repository/files/dexpi%201.3%2Fexample%20pids%2FI01%20Measurement%2FI01V01-VER.EX01.xml/raw?ref=master",
+    "path": "dexpi 1.3/example pids/I01 Measurement/I01V01-VER.EX01.xml",
+    "sha256": "fa9a947c0967f0fb9312eb6793354056d4f6b96e6f11425e924a07169d9b9de2",
+    "bytes": 4918,
+    "ok": true,
+    "license": "CC-BY-4.0"
+  },
+  {
+    "name": "I02V01-VER.EX01.xml",
+    "url": "https://gitlab.com/api/v4/projects/dexpi%2FTrainingTestCases/repository/files/dexpi%201.3%2Fexample%20pids%2FI02%20Control%2FI02V01-VER.EX01.xml/raw?ref=master",
+    "path": "dexpi 1.3/example pids/I02 Control/I02V01-VER.EX01.xml",
+    "sha256": "b3b8c59b7005e44e57ec56b8df407fed4115ee6411988eed4ba040ea834c291d",
+    "bytes": 5106,
+    "ok": true,
+    "license": "CC-BY-4.0"
+  },
+  {
+    "name": "I03V01-VER.EX01.xml",
+    "url": "https://gitlab.com/api/v4/projects/dexpi%2FTrainingTestCases/repository/files/dexpi%201.3%2Fexample%20pids%2FI03%20Measurement%20and%20Control%2FI03V01-VER.EX01.xml/raw?ref=master",
+    "path": "dexpi 1.3/example pids/I03 Measurement and Control/I03V01-VER.EX01.xml",
+    "sha256": "850f7d12e880b5768622f26b97238e70bb7df4687f3451a359a76124e5358364",
+    "bytes": 7212,
+    "ok": true,
+    "license": "CC-BY-4.0"
+  },
+  {
+    "name": "I04V01-VER.EX01.xml",
+    "url": "https://gitlab.com/api/v4/projects/dexpi%2FTrainingTestCases/repository/files/dexpi%201.3%2Fexample%20pids%2FI04%20Measurement%20and%20Control%2FI04V01-VER.EX01.xml/raw?ref=master",
+    "path": "dexpi 1.3/example pids/I04 Measurement and Control/I04V01-VER.EX01.xml",
+    "sha256": "91b301bad8f432feb5dfff46190830a9415c63fd9904485a700f9fda7dfc10b5",
+    "bytes": 7477,
+    "ok": true,
+    "license": "CC-BY-4.0"
+  },
+  {
+    "name": "I05V01-VER.EX01.xml",
+    "url": "https://gitlab.com/api/v4/projects/dexpi%2FTrainingTestCases/repository/files/dexpi%201.3%2Fexample%20pids%2FI05%20Two%20flow%20indications%20and%20flow%20ratio%20control%20in%20CCR%2FI05V01-VER.EX01.xml/raw?ref=master",
+    "path": "dexpi 1.3/example pids/I05 Two flow indications and flow ratio control in CCR/I05V01-VER.EX01.xml",
+    "sha256": "19cd0e7aef5238af1021d32e24b4cd2e46dd92e960c62727324a19d5384cab76",
+    "bytes": 12267,
+    "ok": true,
+    "license": "CC-BY-4.0"
+  },
+  {
+    "name": "I06V01-VER.EX01.xml",
+    "url": "https://gitlab.com/api/v4/projects/dexpi%2FTrainingTestCases/repository/files/dexpi%201.3%2Fexample%20pids%2FI06%20CCR%20flow%20indication%20and%20high%20alarm%2C%20flow%20control%2C%20control%20valve%2FI06V01-VER.EX01.xml/raw?ref=master",
+    "path": "dexpi 1.3/example pids/I06 CCR flow indication and high alarm, flow control, control valve/I06V01-VER.EX01.xml",
+    "sha256": "949b2bcf9bf42b7529171b3f5b3bdd722c5b324640b23ee6af4adc101f2cf79b",
+    "bytes": 12311,
+    "ok": true,
+    "license": "CC-BY-4.0"
+  },
+  {
+    "name": "I07V01-VER.EX01.xml",
+    "url": "https://gitlab.com/api/v4/projects/dexpi%2FTrainingTestCases/repository/files/dexpi%201.3%2Fexample%20pids%2FI07%20Local%20and%20CCR%20pressure%20indic.%2C%20alarm%20and%20safety%20switch%2FI07V01-VER.EX01.xml/raw?ref=master",
+    "path": "dexpi 1.3/example pids/I07 Local and CCR pressure indic., alarm and safety switch/I07V01-VER.EX01.xml",
+    "sha256": "921f13ffe2f02f50e9b0569085b266eeddbe191244d16f40578fcf65912d5a78",
+    "bytes": 9990,
+    "ok": true,
+    "license": "CC-BY-4.0"
+  },
+  {
+    "name": "I08V01-VER.EX01.xml",
+    "url": "https://gitlab.com/api/v4/projects/dexpi%2FTrainingTestCases/repository/files/dexpi%201.3%2Fexample%20pids%2FI08%20Local%20pressure%20indication%2C%20CCR%20pressure%20indication%2C%20alarms%20and%20switches%2FI08V01-VER.EX01.xml/raw?ref=master",
+    "path": "dexpi 1.3/example pids/I08 Local pressure indication, CCR pressure indication, alarms and switches/I08V01-VER.EX01.xml",
+    "sha256": "f8eea1484780126434fe41cd940aa2685d9d1bd738fda0567ecd4a6e5fda1bac",
+    "bytes": 13989,
+    "ok": true,
+    "license": "CC-BY-4.0"
+  },
+  {
+    "name": "I09V01-VER.EX01.xml",
+    "url": "https://gitlab.com/api/v4/projects/dexpi%2FTrainingTestCases/repository/files/dexpi%201.3%2Fexample%20pids%2FI09%20Measurement%2FI09V01-VER.EX01.xml/raw?ref=master",
+    "path": "dexpi 1.3/example pids/I09 Measurement/I09V01-VER.EX01.xml",
+    "sha256": "b2a4bbf0ea128f7f0a204ae2b2414b168afd103d4cf4a12f4796bef8a600716d",
+    "bytes": 4134,
+    "ok": true,
+    "license": "CC-BY-4.0"
+  },
+  {
+    "name": "I10V01-VER.EX01.xml",
+    "url": "https://gitlab.com/api/v4/projects/dexpi%2FTrainingTestCases/repository/files/dexpi%201.3%2Fexample%20pids%2FI10%20Measurement%2FI10V01-VER.EX01.xml/raw?ref=master",
+    "path": "dexpi 1.3/example pids/I10 Measurement/I10V01-VER.EX01.xml",
+    "sha256": "3fe1c132d83b4f5d73e109117b2dcf4b37abebd861e1709a6a995548a5c74fd5",
+    "bytes": 3560,
+    "ok": true,
+    "license": "CC-BY-4.0"
+  },
+  {
+    "name": "I11V01-VER.EX01.xml",
+    "url": "https://gitlab.com/api/v4/projects/dexpi%2FTrainingTestCases/repository/files/dexpi%201.3%2Fexample%20pids%2FI11%20Measurement%2FI11V01-VER.EX01.xml/raw?ref=master",
+    "path": "dexpi 1.3/example pids/I11 Measurement/I11V01-VER.EX01.xml",
+    "sha256": "4f3b10c9eafe82cfb5806f51ae12e0348a55c09eb171782e5542d34a9b3155a5",
+    "bytes": 4308,
+    "ok": true,
+    "license": "CC-BY-4.0"
+  },
+  {
+    "name": "I12V01-VER.EX01.xml",
+    "url": "https://gitlab.com/api/v4/projects/dexpi%2FTrainingTestCases/repository/files/dexpi%201.3%2Fexample%20pids%2FI12%20Control%2FI12V01-VER.EX01.xml/raw?ref=master",
+    "path": "dexpi 1.3/example pids/I12 Control/I12V01-VER.EX01.xml",
+    "sha256": "e6b2cfae50a272d4ad2bf180c147a6f460c47d40f8739246789523d09b246024",
+    "bytes": 5122,
+    "ok": true,
+    "license": "CC-BY-4.0"
+  },
+  {
+    "name": "I13V01-VER.EX01.xml",
+    "url": "https://gitlab.com/api/v4/projects/dexpi%2FTrainingTestCases/repository/files/dexpi%201.3%2Fexample%20pids%2FI13%20Measurement%2FI13V01-VER.EX01.xml/raw?ref=master",
+    "path": "dexpi 1.3/example pids/I13 Measurement/I13V01-VER.EX01.xml",
+    "sha256": "20310c5d3cd076de9afa818a59a9ce885e87b5597bea4024e0f64e12bb33da48",
+    "bytes": 7321,
+    "ok": true,
+    "license": "CC-BY-4.0"
+  },
+  {
+    "name": "I14V01-VER.EX01.xml",
+    "url": "https://gitlab.com/api/v4/projects/dexpi%2FTrainingTestCases/repository/files/dexpi%201.3%2Fexample%20pids%2FI14%20Measurement%2FI14V01-VER.EX01.xml/raw?ref=master",
+    "path": "dexpi 1.3/example pids/I14 Measurement/I14V01-VER.EX01.xml",
+    "sha256": "5968128b25264d16a50f4a5b670af08edabb2b993207001c919a7b48bc7a1474",
+    "bytes": 5847,
+    "ok": true,
+    "license": "CC-BY-4.0"
+  },
+  {
+    "name": "I15V01-VER.EX01.xml",
+    "url": "https://gitlab.com/api/v4/projects/dexpi%2FTrainingTestCases/repository/files/dexpi%201.3%2Fexample%20pids%2FI15%20Measurement%2FI15V01-VER.EX01.xml/raw?ref=master",
+    "path": "dexpi 1.3/example pids/I15 Measurement/I15V01-VER.EX01.xml",
+    "sha256": "d588226c734060b5d30dfa6a84ab5e296fa89b749bb41b35c9f9863a57aa2a05",
+    "bytes": 6339,
+    "ok": true,
+    "license": "CC-BY-4.0"
   },
   {
     "name": "P01V01-VER.EX01.xml",
@@ -43,7 +305,8 @@
     "path": "dexpi 1.3/example pids/P01 Pipe FromTo Nozzles/P01V01-VER.EX01.xml",
     "sha256": "1c88ab8aec8ac9d721b454aa9dc1fe669e6efbea871a36e39beeb9a5fdac4076",
     "bytes": 3684,
-    "ok": true
+    "ok": true,
+    "license": "CC-BY-4.0"
   },
   {
     "name": "P02V01-VER.EX01.xml",
@@ -51,26 +314,31 @@
     "path": "dexpi 1.3/example pids/P02 Pipe From OPC to Nozzle/P02V01-VER.EX01.xml",
     "sha256": "6084e2bbaba4f018551f2db6744fba2976b95a15de172e6cf5f342df009f6611",
     "bytes": 4259,
-    "ok": true
+    "ok": true,
+    "license": "CC-BY-4.0"
   },
   {
-    "name": "C08_sheet_A.xml",
-    "sha256": "dd4e87578eb214406e6f69fa26a43a067c568426def14be2ed5f353ce8f62cd6",
-    "bytes": 1467,
+    "name": "P03V01-VER.EX01.xml",
+    "url": "https://gitlab.com/api/v4/projects/dexpi%2FTrainingTestCases/repository/files/dexpi%201.3%2Fexample%20pids%2FP03%20Pipe%20With%20Edge%2FP03V01-VER.EX01.xml/raw?ref=master",
+    "path": "dexpi 1.3/example pids/P03 Pipe With Edge/P03V01-VER.EX01.xml",
+    "sha256": "7c5b3ef54e709e5aada7c59599181e56bd64a36f32b9965ef823afa88f0ca52f",
+    "bytes": 2903,
     "ok": true,
-    "note": "C01 OPC-derived capability fixture; upstream C08 has 0 XML"
+    "license": "CC-BY-4.0"
   },
   {
-    "name": "C08_sheet_B.xml",
-    "sha256": "5311554831d7dc1c287630a2ee12ae109731bc56c0faccc867d8d0e12c7488cf",
-    "bytes": 1460,
+    "name": "P04V01-VER.EX01.xml",
+    "url": "https://gitlab.com/api/v4/projects/dexpi%2FTrainingTestCases/repository/files/dexpi%201.3%2Fexample%20pids%2FP04%20Pipe%20With%20Intersection%2FP04V01-VER.EX01.xml/raw?ref=master",
+    "path": "dexpi 1.3/example pids/P04 Pipe With Intersection/P04V01-VER.EX01.xml",
+    "sha256": "535a01b3433bdceb0128db8369178c156507ee3d3dbdd9786eae5c30d1c9b543",
+    "bytes": 4651,
     "ok": true,
-    "note": "C01 OPC-derived capability fixture; upstream C08 has 0 XML"
+    "license": "CC-BY-4.0"
   },
   {
     "name": "C08",
     "ok": true,
-    "xml_count": 2,
-    "note": "capability fixtures from C01 OPCs"
+    "xml_count": 0,
+    "note": "Upstream Covestro C08 PDF/XLS only; capability fixtures under pids/c08/"
   }
 ]
