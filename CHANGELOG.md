@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased (M2 B10–B15 — not v2.0.0)
+
+- B10: `exporters/ifc_in.py` reads IFC4 structure/equipment → AABB/capsule; vendored ifcopenshell rack; 4 lines A* with zero penetration.
+- B11: rack tier table (process high / utility mid / drains low) in `docs/rack_tiers.md`; A* preferred Z; rich pin; no capsule overlap.
+- B12: MSS SP-58 kinematic supports (Type 40 anchor, 42 guide, 1 shoe, 51 spring hanger); pinned on rich fixture.
+- B13: ASME B31.3 §319.4.1 flexibility screen (SI K=208000; Y from Table C-1); U-loop heuristic on crafted 200 °C line.
+- B14: clash categories pipe-vs-structure, insulation OD, 600 mm valve-handwheel hemisphere (PIP PNF0200); rich+IFC hard 0.
+- B15: hypothesis properties — A* never penetrates random AABBs; `segment_distance` symmetric, ≥0, brute-sample ±1 mm.
+
 ## Unreleased (M1 B05–B09 — not v2.0.0)
 
 - B05: vendor all 35 DEXPI 1.3 TrainingTestCases example P&IDs (CC-BY-4.0) with sha manifest + `pins.json`.

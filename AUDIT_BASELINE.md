@@ -294,3 +294,29 @@ B10–B40: still `_b_unstarted` FAIL (`evidence_files=0`).
 
 **ACCEPTANCE: 6/40 PASS** on M1 tip when B01 is green and B02/B03 have token+HEAD^ evidence; locally without token: B05–B09 PASS, B01 PASS, B02/B03 FAIL (token/parent sha).
 
+---
+
+## M2 — B10–B15 measured (geometry ceiling)
+
+Recorded 2026-09-08 after standing gate green + `python scripts/acceptance.py` on this M2 tip
+(started from M1 `e87249ea09ededcfb7cad9d0a6315c70f05fd8f0`).
+Checks PASS only on computed IFC entity AABBs, A* sample penetration, rack Z medians,
+MSS type counts, B31.3 319.4.1 ratio, clash category counts, and a pytest subprocess
+(hypothesis). No file-presence PASS path. B04 and B16–B40 remain FAIL. B02 stays red
+(token/HEAD^ CI). No `v2.0.0` tag. Walls: NWD/RVT/DGN/DWG still blocked (`ifc_in` one
+WALL log line + empty set); vendor live APIs / ISOGEN cert / client data / web UI untouched.
+
+| ID | Result | Measured |
+|---|---|---|
+| B10 | **PASS** | ifcopenshell IFC-in: 7 structure + 1 equipment AABB from vendored IFC4 rack; 4 A* lines; interior sample penetrations=0 |
+| B11 | **PASS** | rich service→tier pin `{P-1001,P-1002,G-2001=high, D-1010=low}`; crafted rack median Z 10.0 > 7.0 > 4.0; hard=0; min capsule sep=2.000 m |
+| B12 | **PASS** | MSS SP-58 Type 40/42/1/51; rich pins P-1001 2/1/0/0, P-1002 2/5/0/1 (6.5 m riser), G-2001 2/2/0/0, D-1010 2/2/0/0; crafted shoe≥1 and spring≥1 |
+| B13 | **PASS** | 4 rich lines `no_design_temp`; crafted 200 °C 6″ × 10 m `needs_analysis` Y=21.12 mm (Table C-1 ε=2.112 mm/m × U); U-loop P=0.5 m proposed_ratio=3554.5 ≤ 208000 |
+| B14 | **PASS** | rich+IFC hard=0; crafted hard_by_category structure=1 insulation=1 access=1; hemisphere 0.6 m (PIP PNF0200) |
+| B15 | **PASS** | `pytest tests/test_hypothesis_geom.py` subprocess rc=0 passed=3 (A* vs random AABB; segment_distance symmetric/≥0/brute ±1 mm) |
+
+B04, B16–B40: still `_b_unstarted` FAIL (`evidence_files=0`).
+
+**ACCEPTANCE: 12/40 PASS** locally (B01 + B05–B15) without token (B02/B03 FAIL token/parent sha).
+With token + green HEAD^ jobs, B03 still needs docker_health named for that parent; B02 stays red until later.
+
