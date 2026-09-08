@@ -30,7 +30,6 @@ from threadforge.tables import (
     flange_bolts,
     flange_thickness_m,
     gasket_thickness_m,
-    hydrotest_pressure_barg,
     mass_per_m,
     next_smaller_bore,
     od_mm,
@@ -1206,75 +1205,10 @@ def build_systems_from_graph(graph: TopologyGraph) -> list[ArtefactDescriptor]:
 
 
 def build_test_packs(graph: TopologyGraph) -> list[TestPack]:
-    """Build test packs from system boundaries; stop at isolation valves/blinds/spec-breaks.
+    """Build hydrotest packs (B31.3 345.4.2 + B16.5 P-T + vents/drains)."""
+    from threadforge.hydrotest import build_hydrotest_packs
 
-    Test pressure = 1.5 × design (B31.3) when DesignPressure is known.
-    """
-    isolation = {"VALVE-ISOLATION", "BLIND", "SPEC-BREAK", "VALVE-GATE", "BLINDFLANGE"}
-    packs: list[TestPack] = []
-    for sys in graph.systems.values():
-        member_tags: set[str] = set(sys.boundary_tags)
-        frontier = list(sys.boundary_tags)
-        seen_edges: set[str] = set()
-        while frontier:
-            cur = frontier.pop()
-            for edge in graph.from_tos.values():
-                if edge.id in seen_edges:
-                    continue
-                other = None
-                if edge.from_id == cur:
-                    other = edge.to_id
-                elif edge.to_id == cur:
-                    other = edge.from_id
-                if other is None:
-                    continue
-                seen_edges.add(edge.id)
-                tag = graph.tags.get(other)
-                cls = (tag.engineering.component_class or "").upper().replace(" ", "") if tag else ""
-                name_u = (tag.name if tag else other).upper()
-                is_iso = cls in isolation or "BLIND" in name_u or cls == "VALVE-ISOLATION"
-                member_tags.add(other)
-                if is_iso:
-                    continue  # do not cross
-                frontier.append(other)
-        for pipe in graph.pipelines.values():
-            if pipe.from_tag in member_tags or pipe.to_tag in member_tags:
-                for cid in pipe.component_tags:
-                    tag = graph.tags.get(cid)
-                    cls = (tag.engineering.component_class or "").upper().replace(" ", "") if tag else ""
-                    member_tags.add(cid)
-                    if cls in isolation:
-                        continue
-                if pipe.from_tag:
-                    member_tags.add(pipe.from_tag)
-                if pipe.to_tag:
-                    member_tags.add(pipe.to_tag)
-        member_tags = {t for t in member_tags if t in graph.tags}
-        # design pressure from any related pipeline metadata
-        design_p = None
-        for pipe in graph.pipelines.values():
-            if pipe.from_tag in member_tags or pipe.to_tag in member_tags:
-                dp = (pipe.metadata or {}).get("DesignPressure") or (pipe.metadata or {}).get("design_pressure")
-                if dp is not None:
-                    design_p = float(dp)
-                    break
-        tp_val = hydrotest_pressure_barg(design_p)
-        meta: dict[str, Any] = {"boundary": list(sys.boundary_tags)}
-        if tp_val is not None:
-            meta["test_pressure_barg"] = tp_val
-            meta["design_pressure_barg"] = design_p
-        else:
-            meta["test_pressure_status"] = "missing_design_pressure"
-        pack = TestPack(
-            id=f"TP-{sys.id}",
-            name=f"Test Pack {sys.name}",
-            system_id=sys.id,
-            tags=sorted(member_tags),
-            status="draft",
-            metadata=meta,
-        )
-        packs.append(pack)
-    return packs
+    return build_hydrotest_packs(graph)
 
 
 def build_work_packages(

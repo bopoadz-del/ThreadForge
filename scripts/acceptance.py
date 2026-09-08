@@ -1726,6 +1726,269 @@ def B21() -> tuple[bool, str]:
     )
 
 
+def B22() -> tuple[bool, str]:
+    """Hydrotest packs: B31.3 345.4.2 + B16.5 P-T cap; C01 pin; vents/drains."""
+    from threadforge.hydrotest import C01_HYDRO_PIN, build_hydrotest_packs, high_low_points
+    from threadforge.ingest_dexpi import load_fixture
+    from threadforge.tables import (
+        B16_5_PT_CITE,
+        B31_3_345_4_2_CITE,
+        b16_5_pt_rating_bar,
+        b31_3_345_4_2_test_pressure,
+        infer_flange_class,
+    )
+
+    calc60 = b31_3_345_4_2_test_pressure(60.0, 100.0, 21.0)
+    calc30 = b31_3_345_4_2_test_pressure(30.0, 100.0, 21.0)
+    hot = b31_3_345_4_2_test_pressure(10.0, 316.0, 21.0)
+    formula_ok = (
+        infer_flange_class(60.0, 100.0) == 400
+        and abs(float(calc60["P_T_uncapped_barg"]) - 90.0) < 1e-6
+        and abs(float(calc60["test_pressure_barg"]) - 68.1) < 1e-6
+        and calc60["capped"] is True
+        and abs(b16_5_pt_rating_bar(400, 21.0) - 68.1) < 1e-6
+        and infer_flange_class(30.0, 100.0) == 300
+        and abs(float(calc30["test_pressure_barg"]) - 45.0) < 1e-6
+        and calc30["capped"] is False
+        and float(hot["St_over_S"]) > 1.0
+        and "345.4.2" in B31_3_345_4_2_CITE
+        and "2-1.1" in B16_5_PT_CITE
+    )
+    profile = [(0.0, 0.0, 5.0), (6.0, 0.0, 9.0), (12.0, 0.0, 3.0)]
+    ext = high_low_points(profile)
+    geom_ok = {v["z"] for v in ext["vents"]} == {9.0} and {d["z"] for d in ext["drains"]} == {3.0}
+
+    g = load_fixture("C01V04-VER.EX01.xml")
+    packs = build_hydrotest_packs(g)
+    by = {p.system_id: p for p in packs}
+    if set(by) != set(C01_HYDRO_PIN["system_ids"]) or len(packs) != C01_HYDRO_PIN["pack_count"]:
+        return False, f"packs={sorted(by)} n={len(packs)}"
+    mismatches: list[str] = []
+    for sid, pin in C01_HYDRO_PIN.items():
+        if sid in {"pack_count", "system_ids"}:
+            continue
+        if not isinstance(pin, dict):
+            continue
+        p = by[sid]
+        m = p.metadata or {}
+        if abs(float(m.get("test_pressure_barg") or -1) - float(pin["test_pressure_barg"])) > 1e-6:
+            mismatches.append(f"{sid}:Pt={m.get('test_pressure_barg')}")
+        if int(m.get("flange_class") or 0) != int(pin["flange_class"]):
+            mismatches.append(f"{sid}:class={m.get('flange_class')}")
+        if m.get("test_medium") != pin["test_medium"]:
+            mismatches.append(f"{sid}:medium={m.get('test_medium')}")
+        if set(pin["vents_z"]) - {float(v["z"]) for v in (m.get("vents") or [])}:
+            mismatches.append(f"{sid}:vents")
+        if set(pin["drains_z"]) - {float(d["z"]) for d in (m.get("drains") or [])}:
+            mismatches.append(f"{sid}:drains")
+        if pin.get("capped") is not None and bool(m.get("capped")) != bool(pin["capped"]):
+            mismatches.append(f"{sid}:capped")
+    blinds = set(by["SYS-MNc"].metadata.get("boundary_stops") or [])
+    bound_ok = {"BlindFlange-1", "BlindFlange-2"} <= blinds
+    ok = formula_ok and geom_ok and bound_ok and not mismatches
+    return ok, (
+        f"c01_packs={len(packs)} MNb_Pt={by['SYS-MNb'].metadata.get('test_pressure_barg')} "
+        f"class400={calc60['flange_class']} cap={calc60['flange_rating_barg']} "
+        f"hot_StS={hot['St_over_S']} blinds={bound_ok} mismatches={mismatches or 'none'}"
+    )
+
+
+def B23() -> tuple[bool, str]:
+    """Spec-break validation; crafted 150# into 300# is spec_break_violation."""
+    from threadforge.spec_break import crafted_150_into_300, validate_spec_breaks
+
+    crafted = validate_spec_breaks(crafted_150_into_300())
+    rating_hits = [
+        v
+        for v in crafted["spec_break_violations"]
+        if v.get("kind") == "spec_break_violation"
+        and any("150" in r and "300" in r for r in v.get("reasons") or [])
+    ]
+    ok = crafted["violation_count"] >= 1 and bool(rating_hits)
+    return ok, (
+        f"crafted_violations={crafted['violation_count']} "
+        f"rating_150_300={len(rating_hits)} kind=spec_break_violation"
+    )
+
+
+def B24() -> tuple[bool, str]:
+    """IWP release constraints; look-ahead lists only released IWPs."""
+    from threadforge.iwp_release import IWP_RELEASE_PIN, apply_iwp_release, crafted_release_graph
+    from threadforge.schedule_4d import Schedule4D
+
+    g = crafted_release_graph()
+    summary = apply_iwp_release(g)
+    pin_ok = (
+        summary["released"] == IWP_RELEASE_PIN["released"]
+        and summary["blocked"] == IWP_RELEASE_PIN["blocked"]
+        and summary["released_count"] == 1
+        and summary["iwp_count"] == 5
+    )
+    sch = Schedule4D(g)
+    sch.set_schedule_date("2027-03-03")
+    la = sch.look_ahead(weeks=3, from_date="2027-03-03", released_only=True)
+    ids = [w["id"] for w in la["work_packages"]]
+    ok = pin_ok and ids == ["IWP-REL-1"] and all(w.get("release_ready") for w in la["work_packages"])
+    return ok, f"released={summary['released']} look_ahead={ids} pin_ok={pin_ok}"
+
+
+def B25() -> tuple[bool, str]:
+    """XER TASK/TASKPRED + MSPDI (vendored XSD); reparsed tasks == IWPs."""
+    from threadforge.exporters.schedule_io import (
+        export_mspdi,
+        export_xer,
+        parse_mspdi,
+        parse_xer,
+        validate_mspdi,
+    )
+    from threadforge.iwp_release import apply_iwp_release, crafted_release_graph
+    from threadforge.schedule_4d import Schedule4D
+
+    g = crafted_release_graph()
+    apply_iwp_release(g)
+    sch = Schedule4D(g)
+    la = sch.look_ahead(weeks=3, from_date="2027-03-03", released_only=False)
+    iwp_n = sum(1 for w in la["work_packages"] if w.get("wp_type") == "IWP")
+    with tempfile.TemporaryDirectory() as td:
+        xer_p = Path(td) / "la.xer"
+        xml_p = Path(td) / "la.xml"
+        export_xer(la, xer_p)
+        export_mspdi(la, xml_p)
+        xer = parse_xer(xer_p)
+        msp = parse_mspdi(xml_p)
+        val = validate_mspdi(xml_p)
+        text = xer_p.read_text(encoding="utf-8")
+    tables = set(xer)
+    ok = (
+        iwp_n == 5
+        and len(xer.get("TASK") or []) == iwp_n
+        and msp["task_count"] == iwp_n
+        and val["ok"] is True
+        and val["n_errors"] == 0
+        and val["engine"] == "xmlschema"
+        and "%T\tTASK" in text
+        and "%T\tTASKPRED" in text
+        and "TASKPRED" in tables
+    )
+    return ok, (
+        f"iwps={iwp_n} xer_tasks={len(xer.get('TASK') or [])} "
+        f"mspdi_tasks={msp['task_count']} xsd_errors={val['n_errors']} tables={sorted(tables)}"
+    )
+
+
+def B26() -> tuple[bool, str]:
+    """4D co-activity + craft + crane/laydown; pinned on sample_schedule.json."""
+    from threadforge.generators import build_work_packages
+    from threadforge.ingest_dexpi import load_fixture
+    from threadforge.schedule_4d import SAMPLE_4D_PIN, Schedule4D
+
+    g = load_fixture()
+    build_work_packages(g)
+    sch = Schedule4D(g)
+    sch.load_json(ROOT / "fixtures" / "sample_schedule.json")
+    sch.attach_to_work_packages()
+    by = sch.conflicts_by_day()
+    pin_days_ok = all(by["days"].get(d) == SAMPLE_4D_PIN["days"][d] for d in SAMPLE_4D_PIN["days"])
+    ok = (
+        by["hard_count"] == SAMPLE_4D_PIN["hard_count"]
+        and by["soft_count"] == SAMPLE_4D_PIN["soft_count"]
+        and by["craft_count"] == SAMPLE_4D_PIN["craft_count"]
+        and by["crane_count"] == SAMPLE_4D_PIN["crane_count"]
+        and by["laydown_count"] == SAMPLE_4D_PIN["laydown_count"]
+        and pin_days_ok
+        and {"VOL-CRANE", "VOL-LAYDOWN"} <= set(sch.zones)
+    )
+    return ok, (
+        f"hard={by['hard_count']} soft={by['soft_count']} craft={by['craft_count']} "
+        f"crane={by['crane_count']} laydown={by['laydown_count']} days_pin={pin_days_ok}"
+    )
+
+
+def B27() -> tuple[bool, str]:
+    """Revise one line → dirty set exact; untouched hashes identical for all 12 kinds."""
+    from threadforge.cascade import CASCADE_KINDS_12, CascadeEngine
+    from threadforge.ingest_dexpi import load_fixture
+    from threadforge.routing import generate_routes_astar
+
+    g = load_fixture("sample_pid_rich.xml")
+    generate_routes_astar(g)
+    lids = sorted(g.pipelines)
+    if len(lids) < 2:
+        return False, "need ≥2 lines"
+    a, b = lids[0], lids[1]
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        eng = CascadeEngine(g)
+        hashes: dict[str, str] = {}
+        for lid in (a, b):
+            for kind in CASCADE_KINDS_12:
+                art = eng.write_kind_file(kind, lid, root)
+                if not art.path:
+                    return False, f"no path {kind.value}/{lid}"
+                hashes[art.id] = _sha(Path(art.path))
+        dirty_want = sorted(f"{k.value}-{a}" for k in CASCADE_KINDS_12)
+        g.revise_pipeline(a, {"service": "PROCESS-REV"})
+        event = eng.record_change("pipeline", a, "revise", {"service": "PROCESS-REV"})
+        dirty = eng.last_dirty
+        got_ids = sorted(dirty.artefact_ids) if dirty else []
+        kinds_got = sorted(k.value for k in (dirty.artefact_kinds if dirty else []))
+        kinds_want = sorted(k.value for k in CASCADE_KINDS_12)
+        if got_ids != dirty_want or kinds_got != kinds_want:
+            return False, f"dirty_ids={got_ids} want={dirty_want} kinds={kinds_got}"
+        unchanged = []
+        for kind in CASCADE_KINDS_12:
+            bid = f"{kind.value}-{b}"
+            art = eng.artefacts[bid]
+            new_h = _sha(Path(art.path)) if art.path else ""
+            if new_h != hashes[bid]:
+                return False, f"hash drift {bid}"
+            if art.status == "dirty":
+                return False, f"untouched marked dirty {bid}"
+            unchanged.append(kind.value)
+        ok = event is not None and len(unchanged) == 12
+        return ok, f"dirty={len(got_ids)} kinds=12 untouched_hash_ok={unchanged}"
+
+
+def B28() -> tuple[bool, str]:
+    """FEED→DD→IFC from data gates; IFC refuses unless all six are green."""
+    from threadforge.maturity import (
+        crafted_feed_graph,
+        crafted_ifc_ready_graph,
+        issue_ifc,
+        ladder_from_gates,
+    )
+
+    ready = issue_ifc(crafted_ifc_ready_graph())
+    feed = issue_ifc(crafted_feed_graph())
+    dd_gates = {
+        "fabricated_count": 0,
+        "unmatched_opc_count": 0,
+        "spec_break_violations": 0,
+        "clash_hard": 0,
+        "flex_screen_pass": False,
+        "design_pressure_present": True,
+    }
+    ok = (
+        ready["allowed"] is True
+        and ready["ladder"] == "IFC"
+        and ready["reasons"]["fabricated_count"] == 0
+        and ready["reasons"]["unmatched_opc_count"] == 0
+        and ready["reasons"]["spec_break_violations"] == 0
+        and ready["reasons"]["clash_hard"] == 0
+        and ready["reasons"]["flex_screen_pass"] is True
+        and ready["reasons"]["design_pressure_present"] is True
+        and feed["allowed"] is False
+        and feed["ladder"] == "FEED"
+        and ladder_from_gates(dd_gates) == "DD"
+        and "Refused" in (feed["message"] or "")
+    )
+    return ok, (
+        f"ifc_allowed={ready['allowed']} feed_allowed={feed['allowed']} "
+        f"feed_ladder={feed['ladder']} dd={ladder_from_gates(dd_gates)} "
+        f"failed={feed.get('failed')}"
+    )
+
+
 def _b_unstarted(bid: str) -> Callable[[], tuple[bool, str]]:
     def _fn() -> tuple[bool, str]:
         ev_dir = ROOT / "artifacts" / "ci"
@@ -1793,6 +2056,13 @@ _B_IMPL: dict[str, Callable[[], tuple[bool, str]]] = {
     "B19": B19,
     "B20": B20,
     "B21": B21,
+    "B22": B22,
+    "B23": B23,
+    "B24": B24,
+    "B25": B25,
+    "B26": B26,
+    "B27": B27,
+    "B28": B28,
 }
 
 B_CHECKS: list[tuple[str, Callable[[], tuple[bool, str]]]] = [

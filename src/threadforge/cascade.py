@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import json
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Optional
 
 from threadforge.graph import TopologyGraph
@@ -17,31 +19,26 @@ from threadforge.models import (
     StageStatus,
 )
 
-# Downstream artefacts dirtied when a tag or line changes
-TAG_DIRTY_KINDS = [
-    ArtefactKind.ROUTES,  # geometry first — dependents must re-read graph.routes
-    ArtefactKind.SUPPORTS,
+# Twelve artefact kinds in the digital-thread cascade (B27).
+CASCADE_KINDS_12: list[ArtefactKind] = [
     ArtefactKind.ISOMETRIC,
     ArtefactKind.QUANTITIES,
     ArtefactKind.TEST_PACK,
     ArtefactKind.WORK_PACKAGE,
     ArtefactKind.PCF,
-    ArtefactKind.SYSTEM,
-    ArtefactKind.CLASH,
+    ArtefactKind.DLB,
     ArtefactKind.GA,
+    ArtefactKind.CSV,
+    ArtefactKind.SYSTEM,
+    ArtefactKind.SUPPORTS,
+    ArtefactKind.ROUTES,
+    ArtefactKind.CLASH,
 ]
 
-LINE_DIRTY_KINDS = [
-    ArtefactKind.ROUTES,  # mark routes dirty before PCF/ISO/qty dependents
-    ArtefactKind.SUPPORTS,
-    ArtefactKind.ISOMETRIC,
-    ArtefactKind.QUANTITIES,
-    ArtefactKind.PCF,
-    ArtefactKind.CLASH,
-    ArtefactKind.GA,
-    ArtefactKind.TEST_PACK,
-    ArtefactKind.WORK_PACKAGE,
-]
+# Downstream artefacts dirtied when a tag or line changes
+TAG_DIRTY_KINDS = list(CASCADE_KINDS_12)
+
+LINE_DIRTY_KINDS = list(CASCADE_KINDS_12)
 
 STAGE_CASCADE: dict[JobStage, list[JobStage]] = {
     JobStage.UPLOAD: [JobStage.TOPOLOGY, JobStage.LAYOUT, JobStage.PIPING, JobStage.OUTPUTS],
@@ -97,15 +94,13 @@ class CascadeEngine:
 
         artefact_ids: list[str] = []
         for art in self.artefacts.values():
-            related = False
-            if event.entity_id in art.related_tags or event.entity_id in art.related_lines:
-                related = True
-            if art.kind in kinds and (
-                related
-                or not art.related_tags
-                and not art.related_lines  # global artefacts
-            ):
+            if art.kind not in kinds:
+                continue
+            scoped = bool(art.related_tags or art.related_lines)
+            related = event.entity_id in art.related_tags or event.entity_id in art.related_lines
+            if related or not scoped:
                 artefact_ids.append(art.id)
+        artefact_ids = sorted(artefact_ids)
 
         # WPs that contain the changed tag / line components
         affected_wps: list[str] = []
@@ -171,6 +166,102 @@ class CascadeEngine:
                     if st.status == StageStatus.DONE:
                         st.status = StageStatus.DIRTY
                         st.updated_at = datetime.now(timezone.utc)
+
+    def write_kind_file(
+        self,
+        kind: ArtefactKind,
+        line_id: str,
+        output_dir: Path,
+    ) -> ArtefactDescriptor:
+        """Write one artefact file for ``kind`` scoped to ``line_id`` (B27 hashes)."""
+        from threadforge.clash import generate_clash_report
+        from threadforge.generators import (
+            build_systems_from_graph,
+            build_test_packs,
+            build_work_packages,
+            generate_csv_export,
+            generate_dlb,
+            generate_ga,
+            generate_isometric,
+            generate_pcf,
+            generate_quantities,
+            generate_supports_stub,
+            write_routes_artefact,
+        )
+
+        scoped = output_dir / line_id / kind.value
+        scoped.mkdir(parents=True, exist_ok=True)
+        if kind == ArtefactKind.PCF:
+            art = generate_pcf(self.graph, line_id, scoped)
+        elif kind == ArtefactKind.ISOMETRIC:
+            art = generate_isometric(self.graph, line_id, scoped)
+        elif kind == ArtefactKind.QUANTITIES:
+            art = generate_quantities(self.graph, output_dir=scoped)
+        elif kind == ArtefactKind.GA:
+            art = generate_ga(self.graph, scoped)
+        elif kind == ArtefactKind.DLB:
+            art = generate_dlb(self.graph, scoped)
+        elif kind == ArtefactKind.CSV:
+            art = generate_csv_export(self.graph, scoped)
+        elif kind == ArtefactKind.ROUTES:
+            art = write_routes_artefact(self.graph, scoped)
+        elif kind == ArtefactKind.SUPPORTS:
+            art = generate_supports_stub(self.graph, scoped)
+        elif kind == ArtefactKind.CLASH:
+            art = generate_clash_report(self.graph, scoped)
+        elif kind == ArtefactKind.TEST_PACK:
+            packs = build_test_packs(self.graph)
+            path = scoped / "test_packs.json"
+            path.write_text(
+                json.dumps([p.model_dump(mode="json") for p in packs], indent=2, sort_keys=True),
+                encoding="utf-8",
+            )
+            art = ArtefactDescriptor(
+                id=f"TPK-{line_id}",
+                kind=kind,
+                status="ready",
+                path=str(path),
+                related_lines=[line_id],
+            )
+        elif kind == ArtefactKind.WORK_PACKAGE:
+            if not self.graph.work_packages:
+                build_work_packages(self.graph)
+            path = scoped / "work_packages.json"
+            path.write_text(
+                json.dumps(
+                    [w.model_dump(mode="json") for w in self.graph.work_packages.values()],
+                    indent=2,
+                    sort_keys=True,
+                ),
+                encoding="utf-8",
+            )
+            art = ArtefactDescriptor(
+                id=f"WP-{line_id}",
+                kind=kind,
+                status="ready",
+                path=str(path),
+                related_lines=[line_id],
+            )
+        elif kind == ArtefactKind.SYSTEM:
+            arts = build_systems_from_graph(self.graph)
+            path = scoped / "systems.json"
+            path.write_text(
+                json.dumps([a.payload for a in arts], indent=2, sort_keys=True),
+                encoding="utf-8",
+            )
+            art = ArtefactDescriptor(
+                id=f"SYS-{line_id}",
+                kind=kind,
+                status="ready",
+                path=str(path),
+                related_lines=[line_id],
+            )
+        else:
+            raise ValueError(f"unsupported kind {kind}")
+        art.related_lines = [line_id]
+        art.id = f"{kind.value}-{line_id}"
+        self.register_artefact(art)
+        return art
 
     def dirty_summary(self) -> dict[str, Any]:
         if not self.last_dirty:

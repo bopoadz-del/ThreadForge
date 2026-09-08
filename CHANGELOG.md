@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased (M4 B22–B28 — not v2.0.0)
+
+- B22: hydrotest packs stop at isolation/blind/spec-break; \(P_T=1.5\times P\times S_T/S\) (B31.3 345.4.2) capped by B16.5 Table 2-1.1; water from service table; vents/drains from route Z; C01 pin.
+- B23: spec-break validation on each edge; crafted 150# into 300# → `spec_break_violation`.
+- B24: IWP release constraints (MTO on site, drawings IFC, scaffold, permit); look-ahead lists only `release_ready` IWPs.
+- B25: Primavera XER (`%T TASK`/`TASKPRED`) + MSPDI (vendored XSD); reparsed task counts = IWPs.
+- B26: 4D co-activity + craft density + crane/laydown zones; conflicts by day pinned on `sample_schedule.json`.
+- B27: cascade on all 12 artefact kinds; revise one line → dirty set exact; untouched hashes byte-identical.
+- B28: FEED→DD→IFC from data (fabricated/OPC/spec-break/clash/flex/pressure); IFC issue refused otherwise.
+
 ## Unreleased (M3 B16–B21 — not v2.0.0)
 
 - B16: shop-spool PCF split ≤12 m / ≤2 t / ISO 668 1AA 12.0×2.4×2.4 m envelope; field welds `W-<line>-<n>`; `SPOOL-IDENTIFIER`; rich pins.

@@ -1,6 +1,30 @@
 {
   "schedule_date": "2027-03-03",
   "project": "TF-DEMO-PLANT",
+  "zones": [
+    {
+      "id": "VOL-CRANE",
+      "kind": "crane",
+      "name": "Area 120 crawler crane",
+      "xmin": 5,
+      "ymin": 5,
+      "zmin": 0,
+      "xmax": 25,
+      "ymax": 20,
+      "zmax": 22
+    },
+    {
+      "id": "VOL-LAYDOWN",
+      "kind": "laydown",
+      "name": "Area 124 laydown",
+      "xmin": 50,
+      "ymin": 0,
+      "zmin": 0,
+      "xmax": 70,
+      "ymax": 15,
+      "zmax": 8
+    }
+  ],
   "activities": [
     {
       "id": "ACT-PIP-120-01",

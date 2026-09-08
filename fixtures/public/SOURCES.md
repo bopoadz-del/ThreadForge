@@ -75,6 +75,12 @@ OPC element XML (CC-BY-4.0) with shared `CrossPageConnectionAssignmentClass` so
 cross-file OPC → FromTo joins are pinned. Not a claim that Covestro UER drawings
 were converted.
 
+## MSPDI (B25)
+
+| Asset | Notes |
+|---|---|
+| `mspdi/mspdi.xsd` | Microsoft Project XML Data Interchange subset. Namespace `http://schemas.microsoft.com/project`. See `mspdi/SOURCES.md`. |
+
 ## Public IFC (B10)
 
 | Asset | Notes |

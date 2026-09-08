@@ -98,3 +98,24 @@ SP-58 type, `paint_m2`, `insulation_m2`. Three-level totals must agree ±0.1%.
 
 Iso: one page per spool sheet. GA: one page. Extractable text (pypdf) includes
 the line number and `HEURISTIC — NOT FOR CONSTRUCTION`.
+
+## Hydrotest / AWP / 4D (M4)
+
+### Hydrotest packs
+
+B31.3 **345.4.2** \(P_T = 1.5 \times P \times S_T/S\) (Table A-1 stresses), capped
+by B16.5 **Table 2-1.1** Group 1.1 at test temperature. Medium from the service
+table (water). High/low Z on the pack polyline → vents/drains. See
+`docs/hydrotest.md`. C01 pins: MNb/MNc \(P=60\) → class 400, \(P_T=68.1\) bar
+(capped); WK/QS \(P=30\) → class 300, \(P_T=45.0\) bar.
+
+### Look-ahead XER / MSPDI
+
+Primavera XER `%T TASK` / `%T TASKPRED`. MS Project XML namespace
+`http://schemas.microsoft.com/project`, validated against
+`fixtures/public/mspdi/mspdi.xsd`. Reparsed task count equals exported IWP count.
+
+### 4D zones
+
+`sample_schedule.json` `zones[]` are crane/laydown AABBs. `conflicts_by_day`
+counts hard / soft / craft / crane / laydown per calendar day.

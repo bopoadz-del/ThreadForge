@@ -9,7 +9,9 @@ Sources (public / standards summaries commonly republished):
 - ASME B16.9 — butt-welding fittings: long-radius elbows; concentric reducer end-to-end.
 - ASME B16.10 — valve face-to-face / end-to-end dimensions (Class 150 gate / globe).
 - Gasket thickness 3 mm — common compressed non-asbestos sheet practice (not a code table).
-- ASME B31.3 — hydrostatic test pressure commonly 1.5 × design pressure.
+- ASME B31.3 paragraph 345.4.2 — hydrostatic test pressure P_T = 1.5 × P × S_T / S.
+- ASME B16.5 Table 2-1.1 (Group 1.1) — flange pressure-temperature ratings (bar).
+- ASME B31.3 Appendix A Table A-1 — A106 Gr.B basic allowable stress (MPa).
 - ASME B31.3 Appendix C Table C-1 — carbon-steel thermal expansion (mm/m from 21 °C).
 - ASME B31.3 paragraph 319.4.1 — empirical flexibility criterion (SI K = 208000).
 """
@@ -165,10 +167,177 @@ def flange_bolts(nominal_bore: Optional[str], flange_class: int = 150) -> tuple[
 
 
 def hydrotest_pressure_barg(design_pressure_barg: Optional[float]) -> Optional[float]:
-    """Hydrotest = 1.5 × design — ASME B31.3 practice."""
+    """Hydrotest = 1.5 × design — ASME B31.3 345.4.2 with S_T/S = 1 (same T).
+
+    Full 345.4.2 (S_T/S and B16.5 P-T cap) is ``b31_3_345_4_2_test_pressure``.
+    """
     if design_pressure_barg is None:
         return None
     return 1.5 * float(design_pressure_barg)
+
+
+# ASME B31.3 paragraph 345.4.2 — Hydrostatic Test Pressure (metallic piping):
+#   P_T = 1.5 × P × S_T / S
+#   P_T shall not exceed the test pressure of any component (flange rating).
+# Citation: ASME B31.3 Process Piping, paragraph 345.4.2.
+B31_3_345_4_2_FACTOR = 1.5
+B31_3_345_4_2_CITE = (
+    "ASME B31.3 Process Piping, paragraph 345.4.2: hydrostatic test pressure "
+    "P_T = 1.5 × P × S_T / S, not exceeding any component (flange) rating"
+)
+
+# ASME B31.3 Appendix A Table A-1 — A106 Grade B seamless, basic allowable S (MPa).
+# Selected temperatures. Citation: ASME B31.3 Process Piping, Appendix A, Table A-1
+# (A106 Gr.B / A53 Gr.B Group). 20.0 ksi = 137.9 MPa through 204 °C (400 °F).
+B31_3_A1_A106B_S_MPA: dict[float, float] = {
+    21.0: 137.9,
+    38.0: 137.9,
+    100.0: 137.9,
+    149.0: 137.9,
+    204.0: 137.9,
+    260.0: 130.3,  # 18.9 ksi at 500 °F
+    316.0: 119.3,  # 17.3 ksi at 600 °F
+    343.0: 115.8,
+}
+
+# ASME B16.5-2020 Table 2-1.1 (metric) — Group 1.1 (A105 / A106-B / A53-B)
+# working pressure (bar, gauge) vs temperature (°C) and class.
+# Citation: ASME B16.5 Pipe Flanges and Flanged Fittings, Table 2-1.1 (Group 1.1).
+B16_5_PT_GROUP_1_1_BAR: dict[int, dict[float, float]] = {
+    150: {38.0: 19.6, 50.0: 19.2, 100.0: 17.7, 150.0: 15.8, 200.0: 13.8, 250.0: 12.1, 300.0: 10.2, 350.0: 7.6},
+    300: {38.0: 51.1, 50.0: 50.1, 100.0: 46.6, 150.0: 45.1, 200.0: 43.8, 250.0: 41.9, 300.0: 39.8, 350.0: 37.6},
+    400: {38.0: 68.1, 50.0: 66.8, 100.0: 62.1, 150.0: 60.1, 200.0: 58.4, 250.0: 55.9, 300.0: 53.1, 350.0: 50.1},
+    600: {38.0: 102.1, 50.0: 100.2, 100.0: 93.2, 150.0: 90.2, 200.0: 87.6, 250.0: 83.9, 300.0: 79.6, 350.0: 75.1},
+    900: {38.0: 153.2, 50.0: 150.4, 100.0: 139.8, 150.0: 135.2, 200.0: 131.4, 250.0: 125.8, 300.0: 119.5, 350.0: 112.7},
+    1500: {38.0: 255.3, 50.0: 250.6, 100.0: 233.0, 150.0: 225.4, 200.0: 219.0, 250.0: 209.7, 300.0: 199.1, 350.0: 187.8},
+    2500: {38.0: 425.4, 50.0: 417.7, 100.0: 388.3, 150.0: 375.4, 200.0: 365.0, 250.0: 349.5, 300.0: 331.8, 350.0: 313.0},
+}
+B16_5_PT_CITE = (
+    "ASME B16.5 Pipe Flanges and Flanged Fittings, Table 2-1.1 "
+    "(Group 1.1 pressure-temperature ratings, bar)"
+)
+B16_5_PT_CLASSES: tuple[int, ...] = (150, 300, 400, 600, 900, 1500, 2500)
+
+# Service → hydrostatic test medium. B31.3 345.4 is a hydrostatic (liquid) test;
+# water is the default medium. Mapped C01 TrainingTestCases FluidCodes included.
+# Citation: ASME B31.3 paragraph 345.4 (hydrostatic); service table is plant practice.
+SERVICE_TEST_MEDIUM: dict[str, str] = {
+    "PROCESS": "water",
+    "HYDROCARBON": "water",
+    "LPG": "water",
+    "GAS": "water",
+    "STEAM": "water",
+    "UTILITY": "water",
+    "DRAIN": "water",
+    "VENT": "water",
+    "NITROGEN": "water",
+    "MNB": "water",
+    "MNC": "water",
+    "WKA": "water",
+    "WKB": "water",
+    "QSA": "water",
+    "QSB": "water",
+}
+SERVICE_TEST_MEDIUM_CITE = (
+    "ASME B31.3 paragraph 345.4 hydrostatic test (liquid); "
+    "service→medium table defaults to water"
+)
+
+
+def _interp_table(table: dict[float, float], temp_c: float) -> float:
+    t = float(temp_c)
+    if t in table:
+        return table[t]
+    keys = sorted(table)
+    if t <= keys[0]:
+        return table[keys[0]]
+    if t >= keys[-1]:
+        return table[keys[-1]]
+    lo = max(k for k in keys if k <= t)
+    hi = min(k for k in keys if k >= t)
+    if hi == lo:
+        return table[lo]
+    frac = (t - lo) / (hi - lo)
+    return table[lo] + frac * (table[hi] - table[lo])
+
+
+def allowable_stress_mpa(temp_c: float, material: str = "A106B") -> float:
+    """Basic allowable stress S (MPa) — B31.3 Appendix A Table A-1 (A106 Gr.B).
+
+    Citation: ASME B31.3 Process Piping, Appendix A, **Table A-1** (A106 Grade B).
+    ``material`` other than A106-family still uses this public A106-B row (no
+    vendor catalogue).
+    """
+    _ = material
+    return _interp_table(B31_3_A1_A106B_S_MPA, temp_c)
+
+
+def b16_5_pt_rating_bar(flange_class: int, temp_c: float) -> float:
+    """Flange working pressure (bar) — B16.5 Table 2-1.1 Group 1.1.
+
+    Citation: ASME B16.5, **Table 2-1.1** (Group 1.1).
+    """
+    cls = int(flange_class)
+    if cls not in B16_5_PT_GROUP_1_1_BAR:
+        nearest = min(B16_5_PT_CLASSES, key=lambda c: abs(c - cls))
+        cls = nearest
+    return _interp_table(B16_5_PT_GROUP_1_1_BAR[cls], temp_c)
+
+
+def infer_flange_class(design_pressure_barg: float, design_temp_c: float) -> int:
+    """Lowest B16.5 class whose Table 2-1.1 rating at T ≥ design P."""
+    p = float(design_pressure_barg)
+    t = float(design_temp_c)
+    for cls in B16_5_PT_CLASSES:
+        if b16_5_pt_rating_bar(cls, t) + 1e-9 >= p:
+            return cls
+    return B16_5_PT_CLASSES[-1]
+
+
+def b31_3_345_4_2_test_pressure(
+    design_pressure_barg: float,
+    design_temp_c: float,
+    test_temp_c: float = 21.0,
+    flange_class: Optional[int] = None,
+    material: str = "A106B",
+) -> dict[str, float | int | str | bool]:
+    """Hydrostatic test pressure per B31.3 345.4.2, capped by B16.5 P-T.
+
+    P_T_uncapped = 1.5 × P × S_T / S
+    P_T = min(P_T_uncapped, B16.5 Table 2-1.1 rating of the class at test T)
+    """
+    p = float(design_pressure_barg)
+    s = allowable_stress_mpa(design_temp_c, material)
+    s_t = allowable_stress_mpa(test_temp_c, material)
+    ratio = s_t / s if s > 0 else 1.0
+    uncapped = B31_3_345_4_2_FACTOR * p * ratio
+    cls = int(flange_class) if flange_class is not None else infer_flange_class(p, design_temp_c)
+    cap = b16_5_pt_rating_bar(cls, test_temp_c)
+    pt = min(uncapped, cap)
+    return {
+        "design_pressure_barg": p,
+        "design_temp_c": float(design_temp_c),
+        "test_temp_c": float(test_temp_c),
+        "S_mpa": round(s, 3),
+        "S_T_mpa": round(s_t, 3),
+        "St_over_S": round(ratio, 6),
+        "P_T_uncapped_barg": round(uncapped, 4),
+        "flange_class": cls,
+        "flange_rating_barg": round(cap, 4),
+        "test_pressure_barg": round(pt, 4),
+        "capped": uncapped > cap + 1e-9,
+        "citation": B31_3_345_4_2_CITE,
+        "pt_table": B16_5_PT_CITE,
+        "stress_table": "ASME B31.3 Appendix A Table A-1 (A106 Gr.B)",
+    }
+
+
+def test_medium_for_service(service: Optional[str]) -> str:
+    """Hydrotest medium from the service table (B31.3 345.4 → water)."""
+    key = (service or "PROCESS").strip().upper()
+    if key in SERVICE_TEST_MEDIUM:
+        return SERVICE_TEST_MEDIUM[key]
+    return "water"
 
 
 # ASME B16.5 Class 150 minimum flange thickness tf (mm) — raised-face welding-neck.

@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, Optional, Union
 
 from threadforge.graph import TopologyGraph
-from threadforge.models import DesignVolume, Discipline, ScheduleActivity, WorkPackage
+from threadforge.models import DesignVolume, Discipline, ScheduleActivity, WorkPackage, WPType
 
 # Disciplines commonly used in look-ahead filters
 LOOKAHEAD_DISCIPLINES = ("PIP", "INS", "ELE", "TEL", "EQP", "STR", "CIV")
@@ -49,12 +49,38 @@ class Schedule4D:
         self.graph = graph
         self.activities: dict[str, ScheduleActivity] = {}
         self.schedule_date: date = date.today()
+        self.zones: dict[str, dict[str, Any]] = {}
 
     def set_schedule_date(self, d: Union[str, date]) -> None:
         self.schedule_date = _parse_date(d)
 
     def add_activity(self, activity: ScheduleActivity) -> None:
         self.activities[activity.id] = activity
+
+    def add_zone(self, zone: dict[str, Any]) -> None:
+        """Crane / laydown (or other) zone as an AABB volume."""
+        zid = str(zone["id"])
+        self.zones[zid] = {
+            "id": zid,
+            "kind": str(zone.get("kind") or "zone"),
+            "xmin": float(zone.get("xmin", 0)),
+            "ymin": float(zone.get("ymin", 0)),
+            "zmin": float(zone.get("zmin", 0)),
+            "xmax": float(zone.get("xmax", 0)),
+            "ymax": float(zone.get("ymax", 0)),
+            "zmax": float(zone.get("zmax", 0)),
+        }
+        if self.graph is not None and zid not in self.graph.volumes:
+            self.graph.volumes[zid] = DesignVolume(
+                id=zid,
+                name=str(zone.get("name") or zid),
+                xmin=self.zones[zid]["xmin"],
+                ymin=self.zones[zid]["ymin"],
+                zmin=self.zones[zid]["zmin"],
+                xmax=self.zones[zid]["xmax"],
+                ymax=self.zones[zid]["ymax"],
+                zmax=self.zones[zid]["zmax"],
+            )
 
     def load_json(self, source: Union[str, Path, dict[str, Any], list[Any]]) -> int:
         if isinstance(source, (str, Path)):
@@ -65,6 +91,8 @@ class Schedule4D:
         if isinstance(data, dict):
             if "schedule_date" in data:
                 self.set_schedule_date(data["schedule_date"])
+            for zone in data.get("zones") or []:
+                self.add_zone(zone)
             items = data.get("activities", data.get("tasks", [])) or []
         else:
             items = data
@@ -223,6 +251,7 @@ class Schedule4D:
                             "threshold": 0.05,
                         }
                     )
+        zone_hits = self._zone_conflicts(wps)
         return {
             "hard_count": len(flagged),
             "soft_count": len(soft_adjacent),
@@ -232,6 +261,9 @@ class Schedule4D:
             "flagged": flagged,
             "soft_adjacent": soft_adjacent,
             "craft_warnings": craft_warnings,
+            "zone_conflicts": zone_hits,
+            "crane_count": sum(1 for z in zone_hits if z["kind"] == "crane"),
+            "laydown_count": sum(1 for z in zone_hits if z["kind"] == "laydown"),
             "volumes_involved": sorted({f["volume_id"] for f in flagged}),
             "message": (
                 f"Co-activity — {len(flagged)} hard, {len(soft_adjacent)} soft-adjacent, "
@@ -239,15 +271,86 @@ class Schedule4D:
             ),
         }
 
+    def _zone_conflicts(self, wps: list[WorkPackage]) -> list[dict[str, Any]]:
+        hits: list[dict[str, Any]] = []
+        if not self.graph:
+            return hits
+        for wp in wps:
+            if not wp.volume_id or wp.volume_id not in self.graph.volumes:
+                continue
+            vol = self.graph.volumes[wp.volume_id]
+            for zone in self.zones.values():
+                zv = DesignVolume(
+                    id=zone["id"],
+                    name=zone["id"],
+                    xmin=zone["xmin"],
+                    ymin=zone["ymin"],
+                    zmin=zone["zmin"],
+                    xmax=zone["xmax"],
+                    ymax=zone["ymax"],
+                    zmax=zone["zmax"],
+                )
+                if volumes_adjacent(vol, zv, gap_m=0.0):
+                    hits.append(
+                        {
+                            "wp_id": wp.id,
+                            "zone_id": zone["id"],
+                            "kind": zone["kind"],
+                            "start": wp.start.isoformat() if wp.start else None,
+                            "finish": wp.finish.isoformat() if wp.finish else None,
+                        }
+                    )
+        return hits
+
+    def conflicts_by_day(self) -> dict[str, Any]:
+        """Per-calendar-day hard / soft / craft / crane / laydown counts."""
+        report = self.co_activity_check()
+        days: dict[str, dict[str, int]] = {}
+
+        def _bump(day: str, key: str) -> None:
+            days.setdefault(day, {"hard": 0, "soft": 0, "craft": 0, "crane": 0, "laydown": 0})
+            days[day][key] += 1
+
+        def _each_day(start_s: str, finish_s: str, key: str) -> None:
+            a = _parse_date(start_s)
+            b = _parse_date(finish_s)
+            cur = a
+            while cur <= b:
+                _bump(cur.isoformat(), key)
+                cur = cur + timedelta(days=1)
+
+        for pair in report.get("flagged") or []:
+            _each_day(pair["overlap_start"], pair["overlap_finish"], "hard")
+        for pair in report.get("soft_adjacent") or []:
+            _each_day(pair["overlap_start"], pair["overlap_finish"], "soft")
+        for row in report.get("craft_warnings") or []:
+            wp = self.graph.work_packages.get(row["wp_id"]) if self.graph else None
+            if wp and wp.start and wp.finish:
+                _each_day(wp.start.isoformat(), wp.finish.isoformat(), "craft")
+        for row in report.get("zone_conflicts") or []:
+            if row.get("start") and row.get("finish"):
+                _each_day(str(row["start"]), str(row["finish"]), str(row["kind"]))
+        return {
+            "days": {k: days[k] for k in sorted(days)},
+            "day_count": len(days),
+            "hard_count": report["hard_count"],
+            "soft_count": report["soft_count"],
+            "craft_count": len(report.get("craft_warnings") or []),
+            "crane_count": report.get("crane_count", 0),
+            "laydown_count": report.get("laydown_count", 0),
+        }
+
     def look_ahead(
         self,
         weeks: int = 3,
         from_date: Optional[Union[str, date]] = None,
         disciplines: Optional[list[str]] = None,
+        released_only: bool = False,
     ) -> dict[str, Any]:
         """List activities / WPs in [from_date, from_date + weeks], optional discipline filter.
 
         disciplines: e.g. ["PIP","INS","ELE","TEL"] — filter activities & WPs.
+        released_only: when True, work_packages lists only release_ready IWPs.
         """
         start = _parse_date(from_date) if from_date else self.schedule_date
         end = start + timedelta(weeks=weeks)
@@ -267,6 +370,11 @@ class Schedule4D:
                 if wp.start and wp.finish and self._ranges_overlap(wp.start, wp.finish, start, end):
                     if disc_filter and wp.discipline.value not in disc_filter:
                         continue
+                    if released_only:
+                        if wp.wp_type != WPType.IWP:
+                            continue
+                        if not (wp.metadata or {}).get("release_ready"):
+                            continue
                     row = wp.model_dump(mode="json")
                     meta = wp.metadata or {}
                     weight = float(meta.get("weight_kg") or 0.0)
@@ -276,6 +384,7 @@ class Schedule4D:
                     row["weight_kg"] = weight
                     row["crew_hours"] = crew_hours
                     row["norm_source"] = "0.35 h/kg CS piping (public planning norm)"
+                    row["release_ready"] = bool(meta.get("release_ready"))
                     window_wps.append(row)
 
         by_discipline: dict[str, int] = {}
@@ -288,6 +397,7 @@ class Schedule4D:
             "to": end.isoformat(),
             "weeks": weeks,
             "disciplines_filter": sorted(disc_filter) if disc_filter else None,
+            "released_only": released_only,
             "activities": window_activities,
             "work_packages": window_wps,
             "activity_count": len(window_activities),
@@ -340,3 +450,19 @@ class Schedule4D:
                 wp.finish = act.finish
                 updated += 1
         return updated
+
+
+# Measured on fixtures/sample_schedule.json + sample_pid.xml WPs (B26).
+SAMPLE_4D_PIN: dict[str, Any] = {
+    "hard_count": 1,
+    "soft_count": 6,
+    "craft_count": 0,
+    "crane_count": 2,
+    "laydown_count": 2,
+    "days": {
+        "2027-03-03": {"hard": 0, "soft": 0, "craft": 0, "crane": 1, "laydown": 0},
+        "2027-03-08": {"hard": 0, "soft": 3, "craft": 0, "crane": 1, "laydown": 1},
+        "2027-03-10": {"hard": 1, "soft": 5, "craft": 0, "crane": 1, "laydown": 2},
+        "2027-03-15": {"hard": 1, "soft": 2, "craft": 0, "crane": 0, "laydown": 2},
+    },
+}

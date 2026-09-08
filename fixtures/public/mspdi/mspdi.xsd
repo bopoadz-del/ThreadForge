@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Vendored MSPDI subset (Microsoft Project XML Data Interchange).
+  Namespace: http://schemas.microsoft.com/project
+  Source: Microsoft Office Project XML Schema (MSPDI), Project 2007/2010
+  subset covering Project/Tasks/Task/PredecessorLink used by ThreadForge B25.
+  Not a claim of the full official XSD; element names and namespace match MSPDI.
+-->
+<xs:schema
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    targetNamespace="http://schemas.microsoft.com/project"
+    xmlns="http://schemas.microsoft.com/project"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified">
+
+  <xs:element name="Project">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="SaveVersion" type="xs:string" minOccurs="0"/>
+        <xs:element name="Name" type="xs:string" minOccurs="0"/>
+        <xs:element name="Title" type="xs:string" minOccurs="0"/>
+        <xs:element name="Tasks" minOccurs="0">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="Task" minOccurs="0" maxOccurs="unbounded">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="UID" type="xs:integer"/>
+                    <xs:element name="ID" type="xs:integer" minOccurs="0"/>
+                    <xs:element name="Name" type="xs:string"/>
+                    <xs:element name="Start" type="xs:dateTime" minOccurs="0"/>
+                    <xs:element name="Finish" type="xs:dateTime" minOccurs="0"/>
+                    <xs:element name="OutlineLevel" type="xs:integer" minOccurs="0"/>
+                    <xs:element name="PredecessorLink" minOccurs="0" maxOccurs="unbounded">
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="PredecessorUID" type="xs:integer"/>
+                          <xs:element name="Type" type="xs:integer" minOccurs="0"/>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

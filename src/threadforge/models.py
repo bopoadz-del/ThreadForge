@@ -20,6 +20,7 @@ class MaturityLevel(str, Enum):
     L2 = "L2"
     L3_60 = "L3_60"  # ~60 % model review
     L4_90 = "L4_90"  # ~90 % model review
+    DD = "DD"  # Detailed Design
     IFC = "IFC"  # Issued For Construction
 
 
@@ -30,6 +31,7 @@ MATURITY_ORDER: list[MaturityLevel] = [
     MaturityLevel.L2,
     MaturityLevel.L3_60,
     MaturityLevel.L4_90,
+    MaturityLevel.DD,
     MaturityLevel.IFC,
 ]
 
