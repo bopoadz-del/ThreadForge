@@ -1,5 +1,15 @@
 {
-  "sha": "3482773bee01f95d4014a6f932897805583cefe6",
-  "status": "healthy",
-  "image": "threadforge:ci"
+  "sha": "08f377f08feca30b34cfcf359d2b151a7296c107",
+  "health_status": 200,
+  "health_body": {
+    "status": "ok",
+    "fail_closed": true,
+    "data_dir_writable": true,
+    "registry_schema": "head",
+    "fixture_shas": true,
+    "schema_version": 1
+  },
+  "tools_unauth_status": 401,
+  "tools_auth_status": 200,
+  "image_digest": "sha256:35bd647d9a7ed380e47a94835ee1cfa7c384f84d657bb19e54a78008012c483a"
 }

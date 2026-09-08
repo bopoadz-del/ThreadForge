@@ -266,3 +266,13 @@ To make B01 PASS (fast-forward only; **no merge commit on main**):
 
 Walls (NWD/RVT/DGN/DWG, vendor live APIs, ISOGEN cert, client data, web UI): not hit in M0.
 
+### After M0 land (not the v1.0.1-tip row)
+
+Measured after FF `main` → `08f377f08feca30b34cfcf359d2b151a7296c107` and deleting every other origin head:
+
+| Check | Result | Measured |
+|---|---|---|
+| B01 | **PASS** | `git ls-remote --heads origin` = `refs/heads/main` only; tags v1.0.0=`cffd5b7661b4`, v1.0.1=`0005ae911183` ancestors; v2.0.0 absent |
+| B02 | **FAIL** | HEAD^ CI for `08f377f` run [34173455197](https://github.com/bopoadz-del/ThreadForge/actions/runs/34173455197) `conclusion=failure` (acceptance red on B04–B40 / rewritten A27–A28). Jobs test/docker/probes/publish=success; acceptance=failure. Token-absent still FAIL. |
+| B03 | evidence committed below | `docker_health.json` from that run’s docker job (sha=`08f377f…`, health_status=200, health_body from live `/health`, tools 401/200, image_digest `sha256:35bd647d…`). PASSes only on the commit whose `HEAD^` is `08f377f`. |
+
