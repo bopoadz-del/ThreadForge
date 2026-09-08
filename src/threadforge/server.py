@@ -1,4 +1,4 @@
-"""FastAPI OpenAPI + SQLite artefact registry + bearer auth + jobs.
+"""FastAPI OpenAPI + Alembic registry + RBAC + SSE + artefact ETag.
 
 Offline/deterministic: no network calls inside tool handlers.
 """
@@ -7,28 +7,50 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-import sqlite3
 import threading
+import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Iterator, Optional
 
 from threadforge import agent_tools
 from threadforge.generators import default_output_dir
+from threadforge.guards import (
+    GuardError,
+    check_upload_size,
+    rate_limit_hit,
+    reject_xml_bomb,
+)
+from threadforge.persist import (
+    ROLES,
+    SCHEMA_VERSION,
+    append_audit,
+    append_job_event,
+    apply_migrations,
+    artefact_payload,
+    find_job_by_key,
+    get_job,
+    infer_kind,
+    list_job_events,
+    lookup_principal,
+    put_job,
+    register_artefact_row,
+    seed_hashed_keys,
+    sqlite_url,
+)
 
 try:
     from fastapi import Depends, FastAPI, Header, HTTPException, Request
-    from fastapi.responses import JSONResponse
+    from fastapi.responses import JSONResponse, Response, StreamingResponse
     from pydantic import BaseModel, Field
 except ImportError as exc:  # pragma: no cover
     raise ImportError("pip install 'threadforge[server]'") from exc
 
 
-SCHEMA_VERSION = 1
 _EXECUTOR = ThreadPoolExecutor(max_workers=2)
-_JOBS: dict[str, dict[str, Any]] = {}
-_JOBS_LOCK = threading.Lock()
+_URL_LOCK = threading.Lock()
+_APP_URL: dict[str, str] = {}
 
 
 def data_dir() -> Path:
@@ -49,36 +71,29 @@ def registry_db_path(output_dir: Optional[Path] = None) -> Path:
     return data_dir() / "registry.db"
 
 
+def current_db_url() -> str:
+    with _URL_LOCK:
+        if "url" in _APP_URL:
+            return _APP_URL["url"]
+    env = os.environ.get("TF_DATABASE_URL") or os.environ.get("DATABASE_URL")
+    if env:
+        return env
+    return sqlite_url(registry_db_path())
+
+
 def init_registry(db_path: Optional[Path] = None) -> Path:
+    """Alembic-migrate the SQLite registry (or TF_DATABASE_URL)."""
+    if os.environ.get("TF_DATABASE_URL") or os.environ.get("DATABASE_URL"):
+        url = current_db_url()
+        apply_migrations(url)
+        with _URL_LOCK:
+            _APP_URL["url"] = url
+        return registry_db_path()
     path = db_path or registry_db_path()
-    conn = sqlite3.connect(str(path))
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS artefacts (
-            job_id TEXT,
-            kind TEXT,
-            path TEXT,
-            sha256 TEXT,
-            dirty INTEGER DEFAULT 0,
-            meta TEXT,
-            PRIMARY KEY (job_id, kind, path)
-        )
-        """
-    )
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS schema_meta (
-            key TEXT PRIMARY KEY,
-            value TEXT
-        )
-        """
-    )
-    conn.execute(
-        "INSERT OR REPLACE INTO schema_meta(key, value) VALUES ('schema_version', ?)",
-        (str(SCHEMA_VERSION),),
-    )
-    conn.commit()
-    conn.close()
+    url = sqlite_url(path)
+    apply_migrations(url)
+    with _URL_LOCK:
+        _APP_URL["url"] = url
     return path
 
 
@@ -96,30 +111,30 @@ def register_artefact(
     meta: Optional[dict[str, Any]] = None,
     db_path: Optional[Path] = None,
 ) -> str:
-    db = init_registry(db_path)
-    digest = file_sha256(path) if path.exists() else ""
-    conn = sqlite3.connect(str(db))
-    conn.execute(
-        "INSERT OR REPLACE INTO artefacts(job_id, kind, path, sha256, dirty, meta) VALUES (?,?,?,?,?,?)",
-        (job_id, kind, str(path), digest, 1 if dirty else 0, json.dumps(meta or {})),
-    )
-    conn.commit()
-    conn.close()
-    return digest
+    if db_path is not None:
+        init_registry(db_path)
+    return register_artefact_row(current_db_url(), job_id, kind, path)
 
 
 def list_artefact_hashes(job_id: str, db_path: Optional[Path] = None) -> dict[str, str]:
-    db = init_registry(db_path)
-    conn = sqlite3.connect(str(db))
-    rows = conn.execute(
-        "SELECT path, sha256 FROM artefacts WHERE job_id=?", (job_id,)
-    ).fetchall()
-    conn.close()
-    return {path: sha for path, sha in rows}
+    if db_path is not None:
+        init_registry(db_path)
+    from sqlalchemy import create_engine, text
+
+    engine = create_engine(current_db_url())
+    try:
+        with engine.connect() as conn:
+            rows = conn.execute(
+                text("SELECT path, sha256 FROM artefacts WHERE job_id=:j"),
+                {"j": job_id},
+            ).fetchall()
+    finally:
+        engine.dispose()
+    return {str(path): str(sha) for path, sha in rows}
 
 
 def _parse_tokens() -> dict[str, dict[str, str]]:
-    """TF_API_TOKENS=engineer:eng-token:write,reviewer:rev-token:read"""
+    """TF_API_TOKENS=engineer:eng-token:write,reviewer:rev-token:read[,admin:adm-token:admin]."""
     raw = os.environ.get("TF_API_TOKENS", "")
     out: dict[str, dict[str, str]] = {}
     for part in raw.split(","):
@@ -129,8 +144,36 @@ def _parse_tokens() -> dict[str, dict[str, str]]:
         bits = part.split(":")
         if len(bits) >= 3:
             role, token, access = bits[0], bits[1], bits[2]
+            if role not in ROLES:
+                if access == "admin":
+                    role = "admin"
+                elif access == "write":
+                    role = "engineer"
+                else:
+                    role = "reviewer"
             out[token] = {"role": role, "access": access}
     return out
+
+
+def _seed_tokens_if_needed() -> None:
+    tokens = _parse_tokens()
+    if not tokens:
+        return
+    url = current_db_url()
+    from sqlalchemy import create_engine, text
+
+    engine = create_engine(url)
+    try:
+        with engine.connect() as conn:
+            n = conn.execute(text("SELECT COUNT(*) FROM api_keys")).scalar()
+    finally:
+        engine.dispose()
+    if int(n or 0) > 0:
+        return
+    seed_hashed_keys(
+        url,
+        [(info["role"], info["access"], token) for token, info in tokens.items()],
+    )
 
 
 class Principal(BaseModel):
@@ -142,11 +185,13 @@ class Principal(BaseModel):
 def require_auth(authorization: Optional[str] = Header(default=None)) -> Principal:
     tokens = _parse_tokens()
     if not tokens:
-        # auth disabled when no tokens configured (dev)
         return Principal(role="engineer", access="write", token="")
     if not authorization or not authorization.lower().startswith("bearer "):
         raise HTTPException(status_code=401, detail="missing bearer token")
     token = authorization.split(" ", 1)[1].strip()
+    hashed = lookup_principal(current_db_url(), token)
+    if hashed:
+        return Principal(role=hashed["role"], access=hashed["access"], token=token)
     info = tokens.get(token)
     if not info:
         raise HTTPException(status_code=401, detail="invalid token")
@@ -154,7 +199,9 @@ def require_auth(authorization: Optional[str] = Header(default=None)) -> Princip
 
 
 def require_write(principal: Principal = Depends(require_auth)) -> Principal:
-    if principal.access != "write":
+    if principal.access != "write" and principal.role not in {"admin", "engineer"}:
+        raise HTTPException(status_code=403, detail="write role required")
+    if principal.role == "reviewer":
         raise HTTPException(status_code=403, detail="write role required")
     return principal
 
@@ -171,8 +218,9 @@ class JobCreate(BaseModel):
 
 
 def _run_job(job_id: str, fixture: Optional[str], path: Optional[str], schedule: Optional[str]) -> None:
-    with _JOBS_LOCK:
-        _JOBS[job_id]["state"] = "running"
+    url = current_db_url()
+    put_job(url, job_id, "running")
+    append_job_event(url, job_id, "running", {})
     try:
         out = data_dir() / "jobs" / job_id
         out.mkdir(parents=True, exist_ok=True)
@@ -185,39 +233,67 @@ def _run_job(job_id: str, fixture: Optional[str], path: Optional[str], schedule:
         if schedule:
             agent_tools.attach_schedule(path=schedule)
         result = agent_tools.export_artefacts(output_dir=str(out))
-        # register hashes
-        hashes = {}
+        hashes: dict[str, str] = {}
         for p in out.rglob("*"):
-            if p.is_file():
-                digest = register_artefact(job_id, p.suffix or "file", p, db_path=registry_db_path())
+            if p.is_file() and p.name != "registry.db":
+                kind = infer_kind(p)
+                digest = register_artefact_row(url, job_id, kind, p)
                 hashes[str(p)] = digest
-        with _JOBS_LOCK:
-            _JOBS[job_id]["state"] = "done"
-            _JOBS[job_id]["artefacts"] = hashes
-            _JOBS[job_id]["result"] = result
+        put_job(url, job_id, "done", extra={"artefacts": hashes, "result": result})
+        append_job_event(url, job_id, "done", {"n": len(hashes)})
     except Exception as exc:  # noqa: BLE001
-        with _JOBS_LOCK:
-            _JOBS[job_id]["state"] = "error"
-            _JOBS[job_id]["error"] = str(exc)
+        put_job(url, job_id, "error", extra={"error": str(exc)})
+        append_job_event(url, job_id, "error", {"error": str(exc)})
+
+
+def _rate_key(request: Request, principal: Optional[Principal]) -> str:
+    if principal and principal.token:
+        return f"tok:{principal.token}"
+    client = request.client.host if request.client else "local"
+    return f"ip:{client}"
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="ThreadForge", version="1.0.0", description="Piping digital thread tools")
+    app = FastAPI(title="ThreadForge", version="2.0.0", description="Piping digital thread tools")
     init_registry()
+    _seed_tokens_if_needed()
+
+    @app.middleware("http")
+    async def upload_and_rate(request: Request, call_next):  # type: ignore[no-untyped-def]
+        path = request.url.path
+        cl = request.headers.get("content-length")
+        if cl and cl.isdigit():
+            try:
+                check_upload_size(int(cl))
+            except GuardError as exc:
+                return JSONResponse(status_code=exc.status, content={"detail": str(exc), "code": exc.code})
+        limited = path.rstrip("/") in {"/tools", "/upload"} or (
+            path.rstrip("/") == "/jobs" and request.method == "POST"
+        )
+        if limited:
+            key = request.headers.get("authorization") or (
+                request.client.host if request.client else "anon"
+            )
+            if rate_limit_hit(key):
+                return JSONResponse(status_code=429, content={"detail": "rate limit", "code": "rate_limit"})
+        return await call_next(request)
 
     @app.get("/health")
     def health() -> dict[str, Any]:
         dd = data_dir()
         writable = os.access(dd, os.W_OK)
-        db = registry_db_path()
-        init_registry(db)
-        conn = sqlite3.connect(str(db))
-        row = conn.execute(
-            "SELECT value FROM schema_meta WHERE key='schema_version'"
-        ).fetchone()
-        conn.close()
+        init_registry()
+        from sqlalchemy import create_engine, text
+
+        engine = create_engine(current_db_url())
+        try:
+            with engine.connect() as conn:
+                row = conn.execute(
+                    text("SELECT value FROM schema_meta WHERE key='schema_version'")
+                ).fetchone()
+        finally:
+            engine.dispose()
         schema_ok = row is not None and int(row[0]) == SCHEMA_VERSION
-        # fixture shas
         manifest = Path(__file__).resolve().parents[2] / "fixtures" / "public" / "dexpi13" / "fetch_manifest.json"
         fixture_shas = manifest.is_file()
         status = "ok" if writable and schema_ok and fixture_shas else "degraded"
@@ -242,12 +318,16 @@ def create_app() -> FastAPI:
     ) -> Any:
         if name not in agent_tools.TOOL_REGISTRY:
             raise HTTPException(status_code=404, detail=f"unknown tool: {name}")
-        if principal.access == "read" and name in {
-            "revise_pid",
-            "cascade_rerun",
-            "export_artefacts",
-            "run_pipeline_stage",
-        }:
+        if principal.role == "reviewer" or (
+            principal.access == "read"
+            and name
+            in {
+                "revise_pid",
+                "cascade_rerun",
+                "export_artefacts",
+                "run_pipeline_stage",
+            }
+        ):
             raise HTTPException(status_code=403, detail="read-only token")
         try:
             raw = await request.json()
@@ -266,8 +346,11 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
         except FileNotFoundError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
+        except GuardError as exc:
+            raise HTTPException(status_code=exc.status, detail=str(exc)) from exc
         except Exception as exc:  # noqa: BLE001
             raise HTTPException(status_code=409, detail=str(exc)) from exc
+        append_audit(current_db_url(), principal.role, f"tool:{name}", name, {"ok": True})
         if name == "export_artefacts" and isinstance(result, dict):
             out = Path(
                 args.get("output_dir")
@@ -278,7 +361,7 @@ def create_app() -> FastAPI:
             if out.exists():
                 for fp in out.rglob("*"):
                     if fp.is_file() and fp.name != "registry.db":
-                        digest = register_artefact("local", fp.suffix or "file", fp)
+                        digest = register_artefact("local", infer_kind(fp), fp)
                         try:
                             hashes[str(fp.relative_to(out))] = digest
                         except ValueError:
@@ -288,31 +371,88 @@ def create_app() -> FastAPI:
         return result
 
     @app.post("/jobs", status_code=202)
-    def create_job(body: JobCreate, _auth: Principal = Depends(require_write)) -> dict[str, str]:
-        with _JOBS_LOCK:
-            if body.job_key:
-                for existing in _JOBS.values():
-                    if existing.get("job_key") == body.job_key:
-                        raise HTTPException(
-                            status_code=409,
-                            detail=f"duplicate job_key: {body.job_key}",
-                        )
-            job_id = f"job-{uuid.uuid4().hex[:10]}"
-            _JOBS[job_id] = {"state": "queued", "id": job_id, "job_key": body.job_key}
+    def create_job(body: JobCreate, principal: Principal = Depends(require_write)) -> dict[str, str]:
+        url = current_db_url()
+        if body.job_key:
+            existing = find_job_by_key(url, body.job_key)
+            if existing:
+                raise HTTPException(status_code=409, detail=f"duplicate job_key: {body.job_key}")
+        job_id = f"job-{uuid.uuid4().hex[:10]}"
+        put_job(url, job_id, "queued", job_key=body.job_key)
+        append_job_event(url, job_id, "queued", {})
+        append_audit(url, principal.role, "job.create", job_id, {"job_key": body.job_key})
         _EXECUTOR.submit(_run_job, job_id, body.fixture, body.path, body.schedule)
         return {"id": job_id, "job_id": job_id, "status": "queued"}
 
     @app.get("/jobs/{job_id}")
-    def get_job(job_id: str, _auth: Principal = Depends(require_auth)) -> dict[str, Any]:
-        with _JOBS_LOCK:
-            job = _JOBS.get(job_id)
+    def get_job_http(job_id: str, _auth: Principal = Depends(require_auth)) -> dict[str, Any]:
+        job = get_job(current_db_url(), job_id)
         if not job:
             raise HTTPException(status_code=404, detail="job not found")
         return job
 
+    @app.get("/jobs/{job_id}/artefacts/{kind}")
+    def get_artefact(
+        job_id: str,
+        kind: str,
+        request: Request,
+        _auth: Principal = Depends(require_auth),
+    ) -> Response:
+        payload = artefact_payload(current_db_url(), job_id, kind)
+        if payload is None:
+            raise HTTPException(status_code=404, detail="artefact not found")
+        data, digest, media = payload
+        etag = f'"{digest}"'
+        inm = request.headers.get("if-none-match")
+        if inm:
+            want = inm.strip()
+            if want == etag or want.strip('"') == digest:
+                return Response(status_code=304, headers={"ETag": etag})
+        return Response(content=data, media_type=media, headers={"ETag": etag, "X-Content-SHA256": digest})
+
+    @app.get("/jobs/{job_id}/events")
+    def job_events_sse(job_id: str, _auth: Principal = Depends(require_auth)) -> StreamingResponse:
+        url = current_db_url()
+        if get_job(url, job_id) is None:
+            raise HTTPException(status_code=404, detail="job not found")
+
+        def gen() -> Iterator[str]:
+            last = 0
+            for _ in range(400):
+                rows = list_job_events(url, job_id, after=last)
+                for ev in rows:
+                    last = int(ev["id"])
+                    yield f"event: {ev['name']}\ndata: {json.dumps(ev, sort_keys=True)}\n\n"
+                    if ev["name"] in {"done", "error"}:
+                        return
+                time.sleep(0.05)
+
+        return StreamingResponse(gen(), media_type="text/event-stream")
+
+    @app.post("/upload")
+    async def upload_xml(
+        request: Request,
+        principal: Principal = Depends(require_write),
+    ) -> dict[str, Any]:
+        data = await request.body()
+        try:
+            check_upload_size(len(data))
+            reject_xml_bomb(data)
+        except GuardError as exc:
+            raise HTTPException(status_code=exc.status, detail=str(exc)) from exc
+        dest = data_dir() / "uploads" / f"{uuid.uuid4().hex}.xml"
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(data)
+        append_audit(current_db_url(), principal.role, "upload", str(dest), {"n": len(data)})
+        return {"path": str(dest), "bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}
+
     @app.exception_handler(HTTPException)
     async def http_exc_handler(request: Request, exc: HTTPException) -> JSONResponse:
         return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail, "ok": False})
+
+    @app.exception_handler(GuardError)
+    async def guard_exc_handler(request: Request, exc: GuardError) -> JSONResponse:
+        return JSONResponse(status_code=exc.status, content={"detail": str(exc), "code": exc.code, "ok": False})
 
     return app
 

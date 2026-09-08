@@ -15,6 +15,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -1989,6 +1990,262 @@ def B28() -> tuple[bool, str]:
     )
 
 
+def B29() -> tuple[bool, str]:
+    """Alembic head identical on SQLite and Postgres (revision + tables)."""
+    from threadforge.persist import REQUIRED_TABLES, SCHEMA_REVISION, SCHEMA_VERSION, migrate_both
+
+    with tempfile.TemporaryDirectory() as td:
+        both = migrate_both(Path(td) / "reg.db")
+    sq, pg = both["sqlite"], both["postgres"]
+    missing_sq = [t for t in REQUIRED_TABLES if t not in sq["tables"]]
+    missing_pg = [t for t in REQUIRED_TABLES if t not in pg["tables"]]
+    ok = (
+        sq["revision"] == pg["revision"] == SCHEMA_REVISION
+        and sq["schema_version"] == pg["schema_version"] == SCHEMA_VERSION
+        and not missing_sq
+        and not missing_pg
+    )
+    return ok, (
+        f"rev={sq['revision']}/{pg['revision']} ver={sq['schema_version']}/{pg['schema_version']} "
+        f"missing_sq={missing_sq or 'none'} missing_pg={missing_pg or 'none'}"
+    )
+
+
+def B30() -> tuple[bool, str]:
+    """3 roles, hashed keys (not plaintext), append-only audit ledger."""
+    from threadforge.persist import (
+        ROLES,
+        audit_mutation_blocked,
+        migrate_both,
+        new_key_hash,
+        seed_hashed_keys,
+        sqlite_url,
+        verify_api_key,
+    )
+    from threadforge.server import create_app
+
+    token = "secret-engineer-token"
+    stored = new_key_hash(token)
+    hash_ok = token not in stored and verify_api_key(token, stored)
+    with tempfile.TemporaryDirectory() as td:
+        db = Path(td) / "reg.db"
+        both = migrate_both(db)
+        url = sqlite_url(db)
+        hashes = seed_hashed_keys(
+            url,
+            [
+                ("admin", "admin", "adm-x"),
+                ("engineer", "write", "eng-x"),
+                ("reviewer", "read", "rev-x"),
+            ],
+        )
+        blocked = audit_mutation_blocked(url)
+        os.environ["TF_DATA"] = str(Path(td) / "data")
+        os.environ["TF_API_TOKENS"] = "admin:adm-x:admin,engineer:eng-x:write,reviewer:rev-x:read"
+        os.environ.pop("TF_DATABASE_URL", None)
+        from fastapi.testclient import TestClient
+
+        from threadforge.guards import reset_rate_limits
+
+        reset_rate_limits()
+        client = TestClient(create_app())
+        rev = client.post("/jobs", headers={"Authorization": "Bearer rev-x"}, json={"fixture": "sample_pid.xml"})
+        eng = client.post("/jobs", headers={"Authorization": "Bearer eng-x"}, json={"fixture": "sample_pid.xml"})
+    ok = (
+        hash_ok
+        and set(ROLES) == {"admin", "engineer", "reviewer"}
+        and all(t not in h for h in hashes for t in ("adm-x", "eng-x", "rev-x"))
+        and blocked["update"]
+        and blocked["delete"]
+        and rev.status_code == 403
+        and eng.status_code == 202
+        and both["postgres"]["revision"] == both["sqlite"]["revision"]
+    )
+    return ok, (
+        f"roles={list(ROLES)} hashed={hash_ok} audit_blocked={blocked} "
+        f"reviewer={rev.status_code} engineer={eng.status_code}"
+    )
+
+
+def B31() -> tuple[bool, str]:
+    """GET artefact ETag + If-None-Match 304; sha256 matches body."""
+    from fastapi.testclient import TestClient
+
+    from threadforge.guards import reset_rate_limits
+    from threadforge.server import create_app
+
+    reset_rate_limits()
+    with tempfile.TemporaryDirectory() as td:
+        os.environ["TF_DATA"] = td
+        os.environ["TF_API_TOKENS"] = "engineer:eng-token:write"
+        os.environ.pop("TF_DATABASE_URL", None)
+        client = TestClient(create_app())
+        headers = {"Authorization": "Bearer eng-token"}
+        created = client.post("/jobs", headers=headers, json={"fixture": "sample_pid_rich.xml"})
+        if created.status_code != 202:
+            return False, f"create={created.status_code}"
+        job_id = created.json()["id"]
+        state = ""
+        for _ in range(200):
+            body = client.get(f"/jobs/{job_id}", headers=headers).json()
+            state = str(body.get("state") or "")
+            if state in {"done", "error"}:
+                break
+            time.sleep(0.1)
+        first = client.get(f"/jobs/{job_id}/artefacts/pcf", headers=headers)
+        digest = first.headers.get("x-content-sha256") or ""
+        etag = first.headers.get("etag") or ""
+        body_sha = hashlib.sha256(first.content).hexdigest() if first.content else ""
+        second = client.get(
+            f"/jobs/{job_id}/artefacts/pcf",
+            headers={**headers, "If-None-Match": etag},
+        )
+    ok = (
+        state == "done"
+        and first.status_code == 200
+        and second.status_code == 304
+        and digest == body_sha
+        and etag.strip('"') == digest
+        and len(digest) == 64
+    )
+    return ok, f"state={state} get={first.status_code} inm={second.status_code} sha_match={digest == body_sha}"
+
+
+def B32() -> tuple[bool, str]:
+    """SSE job events: queued then running/done on text/event-stream."""
+    from fastapi.testclient import TestClient
+
+    from threadforge.guards import reset_rate_limits
+    from threadforge.server import create_app
+
+    reset_rate_limits()
+    with tempfile.TemporaryDirectory() as td:
+        os.environ["TF_DATA"] = td
+        os.environ["TF_API_TOKENS"] = "engineer:eng-token:write"
+        os.environ.pop("TF_DATABASE_URL", None)
+        client = TestClient(create_app())
+        headers = {"Authorization": "Bearer eng-token"}
+        created = client.post("/jobs", headers=headers, json={"fixture": "sample_pid.xml"})
+        job_id = created.json().get("id")
+        ctype = ""
+        text = ""
+        with client.stream("GET", f"/jobs/{job_id}/events", headers=headers) as resp:
+            ctype = resp.headers.get("content-type") or ""
+            text = "".join(resp.iter_text())
+    names = [line.split(":", 1)[1].strip() for line in text.splitlines() if line.startswith("event:")]
+    ok = (
+        created.status_code == 202
+        and ctype.startswith("text/event-stream")
+        and "queued" in names
+        and ("done" in names or "error" in names)
+    )
+    return ok, f"ctype={ctype.split(';')[0]} events={names}"
+
+
+def B33() -> tuple[bool, str]:
+    """MCP resource threadforge://job/{id}/{kind} sha256 == HTTP artefact GET."""
+    from fastapi.testclient import TestClient
+
+    from threadforge.guards import reset_rate_limits
+    from threadforge.mcp_server import read_resource, resource_uri
+    from threadforge.server import create_app
+
+    reset_rate_limits()
+    with tempfile.TemporaryDirectory() as td:
+        os.environ["TF_DATA"] = td
+        os.environ["TF_API_TOKENS"] = "engineer:eng-token:write"
+        os.environ.pop("TF_DATABASE_URL", None)
+        client = TestClient(create_app())
+        headers = {"Authorization": "Bearer eng-token"}
+        created = client.post("/jobs", headers=headers, json={"fixture": "sample_pid_rich.xml"})
+        job_id = created.json()["id"]
+        for _ in range(200):
+            if client.get(f"/jobs/{job_id}", headers=headers).json().get("state") == "done":
+                break
+            time.sleep(0.1)
+        http = client.get(f"/jobs/{job_id}/artefacts/pcf", headers=headers)
+        uri = resource_uri(job_id, "pcf")
+        mcp = read_resource(uri)
+    ok = (
+        http.status_code == 200
+        and uri == f"threadforge://job/{job_id}/pcf"
+        and mcp["sha256"] == http.headers.get("x-content-sha256")
+        and mcp["blob"] == http.content
+        and mcp["sha256"] == hashlib.sha256(http.content).hexdigest()
+    )
+    return ok, f"uri={uri} http={http.headers.get('x-content-sha256')} mcp={mcp.get('sha256')}"
+
+
+def B34() -> tuple[bool, str]:
+    """Upload oversize 413, XML-bomb 400, rate-limit 429."""
+    from fastapi.testclient import TestClient
+
+    from threadforge.guards import MAX_UPLOAD_BYTES, reset_rate_limits
+    from threadforge.ingest_dexpi import parse_dexpi_xml
+    from threadforge.server import create_app
+
+    bomb = (
+        b'<?xml version="1.0"?>\n<!DOCTYPE lolz [\n'
+        b'<!ENTITY lol "lol">\n<!ENTITY lol2 "&lol;&lol;">\n]>\n<lolz>&lol2;</lolz>'
+    )
+    bomb_status = 0
+    try:
+        parse_dexpi_xml(bomb)
+    except Exception as exc:  # noqa: BLE001
+        bomb_status = int(getattr(exc, "status", 0) or 0)
+    reset_rate_limits()
+    with tempfile.TemporaryDirectory() as td:
+        os.environ["TF_DATA"] = td
+        os.environ["TF_API_TOKENS"] = "engineer:eng-token:write"
+        os.environ.pop("TF_DATABASE_URL", None)
+        client = TestClient(create_app())
+        headers = {"Authorization": "Bearer eng-token"}
+        big = client.post("/upload", headers=headers, content=b"x" * (MAX_UPLOAD_BYTES + 8))
+        bomb_http = client.post("/upload", headers=headers, content=bomb)
+        codes = [client.get("/tools", headers=headers).status_code for _ in range(25)]
+    ok = (
+        bomb_status == 400
+        and big.status_code == 413
+        and bomb_http.status_code == 400
+        and 429 in codes
+    )
+    return ok, (
+        f"bomb_parse={bomb_status} upload_big={big.status_code} "
+        f"upload_bomb={bomb_http.status_code} tools_codes={sorted(set(codes))}"
+    )
+
+
+def B35() -> tuple[bool, str]:
+    """Two OS processes export identical sha256 maps."""
+    script = ROOT / "scripts" / "cross_process_export.py"
+    with tempfile.TemporaryDirectory() as td:
+        a = Path(td) / "a"
+        b = Path(td) / "b"
+        env = {**os.environ, "PYTHONPATH": str(ROOT / "src")}
+        r1 = subprocess.run(
+            [sys.executable, str(script), str(a)],
+            cwd=str(ROOT),
+            env=env,
+            capture_output=True,
+            text=True,
+        )
+        r2 = subprocess.run(
+            [sys.executable, str(script), str(b)],
+            cwd=str(ROOT),
+            env=env,
+            capture_output=True,
+            text=True,
+        )
+        if r1.returncode != 0 or r2.returncode != 0:
+            return False, f"rc={r1.returncode}/{r2.returncode} e1={r1.stderr[-200:]} e2={r2.stderr[-200:]}"
+        h1 = json.loads(r1.stdout.strip().splitlines()[-1])
+        h2 = json.loads(r2.stdout.strip().splitlines()[-1])
+    common = set(h1) & set(h2)
+    mismatches = [k for k in sorted(common) if h1[k] != h2[k]]
+    ok = bool(common) and not mismatches and len(h1) == len(h2)
+    return ok, f"files={len(common)} mismatches={mismatches[:4] or 'none'}"
+
+
 def _b_unstarted(bid: str) -> Callable[[], tuple[bool, str]]:
     def _fn() -> tuple[bool, str]:
         ev_dir = ROOT / "artifacts" / "ci"
@@ -2063,6 +2320,13 @@ _B_IMPL: dict[str, Callable[[], tuple[bool, str]]] = {
     "B26": B26,
     "B27": B27,
     "B28": B28,
+    "B29": B29,
+    "B30": B30,
+    "B31": B31,
+    "B32": B32,
+    "B33": B33,
+    "B34": B34,
+    "B35": B35,
 }
 
 B_CHECKS: list[tuple[str, Callable[[], tuple[bool, str]]]] = [

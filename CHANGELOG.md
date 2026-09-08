@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased (M5 B29–B35 — not v2.0.0)
+
+- B29: Alembic `0001_m5` applied to SQLite and Postgres; same revision + table set (artefacts, api_keys, audit_events, jobs, job_events).
+- B30: RBAC roles admin/engineer/reviewer; keys stored as PBKDF2-HMAC-SHA256 (`tfk1$`); audit ledger UPDATE/DELETE aborted by trigger.
+- B31: `GET /jobs/{id}/artefacts/{kind}` ETag = sha256; If-None-Match → 304.
+- B32: `GET /jobs/{id}/events` SSE (`queued` / `running` / `done`).
+- B33: MCP `threadforge://job/{id}/{kind}` sha256 equals HTTP artefact GET.
+- B34: upload > 2 MiB → 413; `<!DOCTYPE`/`<!ENTITY` XML bomb → 400; rate-limit → 429.
+- B35: two OS processes export identical artefact sha256 maps.
+
 ## Unreleased (M4 B22–B28 — not v2.0.0)
 
 - B22: hydrotest packs stop at isolation/blind/spec-break; \(P_T=1.5\times P\times S_T/S\) (B31.3 345.4.2) capped by B16.5 Table 2-1.1; water from service table; vents/drains from route Z; C01 pin.

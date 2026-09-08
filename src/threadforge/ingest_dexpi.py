@@ -240,12 +240,16 @@ def _association_targets(el: ET.Element) -> list[str]:
 
 def parse_dexpi_xml(source: Union[str, Path, bytes]) -> TopologyGraph:
     """Parse DEXPI/Proteus-shaped XML into a TopologyGraph."""
+    from threadforge.guards import reject_xml_bomb
+
     if isinstance(source, bytes):
+        reject_xml_bomb(source)
         root = ET.fromstring(source)
     else:
         path = Path(source)
-        tree = ET.parse(path)
-        root = tree.getroot()
+        xml_bytes = path.read_bytes()
+        reject_xml_bomb(xml_bytes)
+        root = ET.fromstring(xml_bytes)
 
     graph = TopologyGraph()
     parents = _parent_map(root)

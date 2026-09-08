@@ -375,3 +375,28 @@ B04, B29–B40: still `_b_unstarted` FAIL (`evidence_files=0`).
 
 **ACCEPTANCE: 24/40 PASS** locally (B05–B28) without token (B01 FAIL while feature head exists; B02/B03 FAIL token/parent sha). After FF `main` and deleting the feature head, B01 is expected PASS → **25/40** when origin heads=`[refs/heads/main]`.
 
+---
+
+## M5 — B29–B35 measured (registry / RBAC / HTTP+MCP)
+
+Recorded 2026-09-08 after standing gate green + `python scripts/acceptance.py` B29–B35 on this M5 tip
+(started from M4 `17526284624813574c9a985ab4c9c3ade27826d6`).
+Checks PASS only on computed Alembic revision/table sets, PBKDF2 hash inequality,
+HTTP status codes, sha256 equality, SSE event names, and two-process hash maps.
+No file-presence PASS path. B04 and B36–B40 remain FAIL. B02 stays red
+(token/HEAD^ CI). No `v2.0.0` tag. Walls untouched.
+
+| ID | Result | Measured |
+|---|---|---|
+| B29 | **PASS** | Alembic `0001_m5` on SQLite and Postgres; schema_version=2; tables artefacts/api_keys/audit_events/jobs/job_events present on both |
+| B30 | **PASS** | roles admin/engineer/reviewer; key_hash PBKDF2 `tfk1$` ≠ plaintext; audit UPDATE/DELETE blocked; reviewer POST /jobs=403; engineer=202 |
+| B31 | **PASS** | GET artefact 200; ETag=sha256(body); If-None-Match → 304 |
+| B32 | **PASS** | `text/event-stream` events queued → running → done |
+| B33 | **PASS** | `threadforge://job/{id}/pcf` sha256 == HTTP `X-Content-SHA256` (8498ace3…) |
+| B34 | **PASS** | parse XML-bomb 400; upload 2 MiB+1 → 413; ENTITY upload 400; GET /tools codes {200,429} |
+| B35 | **PASS** | two OS processes; 32 common files; sha256 mismatches=none (GA offset now sha256 not builtin hash) |
+
+B04, B36–B40: still `_b_unstarted` FAIL (`evidence_files=0`).
+
+**ACCEPTANCE: 32/40 PASS** locally (B01 + B05–B35) without token (B02/B03 FAIL token/parent sha).
+

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import uuid
@@ -1016,10 +1017,11 @@ def write_ga_svg(graph: TopologyGraph) -> str:
         if vol:
             cx = (vol.xmin + vol.xmax) / 2
             cy = (vol.ymin + vol.ymax) / 2
-            # offset slightly by hash of id so multiple tags don't stack
-            off = (hash(eq.id) % 17) - 8
+            # offset by stable digest (builtin hash() is process-salted)
+            digest = int.from_bytes(hashlib.sha256(eq.id.encode("utf-8")).digest()[:4], "big")
+            off = (digest % 17) - 8
             cx += off * 0.3
-            cy += ((hash(eq.id) // 17) % 11) - 5
+            cy += ((digest // 17) % 11) - 5
         else:
             continue
         parts.append(

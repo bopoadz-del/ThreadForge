@@ -9,6 +9,8 @@ COPY src ./src
 COPY fixtures ./fixtures
 COPY scripts ./scripts
 COPY agent ./agent
+COPY alembic ./alembic
+COPY alembic.ini ./alembic.ini
 COPY openapi.json ./openapi.json
 RUN pip install --no-cache-dir -U pip && pip install --no-cache-dir -e ".[all]" \
  && python -c "import threadforge; print(threadforge.__file__)"
