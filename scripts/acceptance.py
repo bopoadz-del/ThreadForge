@@ -1208,6 +1208,258 @@ def B09() -> tuple[bool, str]:
     return ok, f"xlsx={sheet_rows} docs_missing={missing_docs or 'none'}"
 
 
+def B10() -> tuple[bool, str]:
+    """IFC-in obstacles; 4 lines route with zero AABB penetration (computed)."""
+    from threadforge.exporters.ifc_in import (
+        attach_ifc_obstacles,
+        four_line_ifc_graph,
+        load_ifc_obstacles,
+        public_rack_path,
+        route_ifc_penetrations,
+    )
+    from threadforge.routing import generate_routes_astar
+
+    path = public_rack_path()
+    obs = load_ifc_obstacles(path)
+    if obs.get("wall"):
+        return False, f"wall={obs['wall']}"
+    if int(obs.get("structure_count") or 0) < 7 or int(obs.get("equipment_count") or 0) < 1:
+        return False, f"structure={obs.get('structure_count')} equipment={obs.get('equipment_count')}"
+    g = four_line_ifc_graph()
+    attach_ifc_obstacles(g, path)
+    generate_routes_astar(g, grid=0.5)
+    routes = list(g.routes.values())
+    if len(routes) != 4:
+        return False, f"routes={len(routes)}"
+    acc = [r.get("accuracy") for r in routes]
+    if acc.count("astar") != 4:
+        return False, f"accuracy={acc}"
+    hits = route_ifc_penetrations(routes, list(obs["aabbs"]), skip_endpoints=True, samples=24)
+    ok = hits == 0
+    return ok, (
+        f"ifc_products={len(obs['products'])} structure={obs['structure_count']} "
+        f"equipment={obs['equipment_count']} routes=4 astar=4 penetrations={hits}"
+    )
+
+
+def B11() -> tuple[bool, str]:
+    """Rack tiers: documented table; rich pin; A* Z order; no capsule overlap."""
+    from threadforge.clash import clash_check, segment_distance
+    from threadforge.ingest_dexpi import load_fixture
+    from threadforge.rack import (
+        DEFAULT_TIER_Z,
+        RICH_TIER_PIN,
+        median_z_in_rack,
+        rack_xy_aabb,
+        rich_tier_assignment,
+        three_service_rack_graph,
+    )
+    from threadforge.routing import generate_routes_astar
+
+    docs = (ROOT / "docs" / "rack_tiers.md").read_text(encoding="utf-8")
+    if not all(s in docs for s in ("`high`", "`mid`", "`low`", "PROCESS", "UTILITY", "DRAIN")):
+        return False, "rack_tiers.md missing required service/tier rows"
+    g = load_fixture("sample_pid_rich.xml")
+    got = rich_tier_assignment(g)
+    if got != RICH_TIER_PIN:
+        return False, f"rich_tiers={got} pin={RICH_TIER_PIN}"
+    generate_routes_astar(g)
+    for lid, tier in RICH_TIER_PIN.items():
+        if g.routes[lid].get("rack_tier") != tier:
+            return False, f"{lid} rack_tier={g.routes[lid].get('rack_tier')} pin={tier}"
+    rg = three_service_rack_graph()
+    generate_routes_astar(rg, grid=0.5)
+    xy = rack_xy_aabb(rg)
+    if xy is None:
+        return False, "no rack aabb"
+    zp = median_z_in_rack(rg.routes["L-RACK-P"]["points"], xy)
+    zu = median_z_in_rack(rg.routes["L-RACK-U"]["points"], xy)
+    zd = median_z_in_rack(rg.routes["L-RACK-D"]["points"], xy)
+    if zp is None or zu is None or zd is None or not (zp > zu > zd):
+        return False, f"tier_z P={zp} U={zu} D={zd}"
+    z_ok = (
+        abs(zp - DEFAULT_TIER_Z["high"]) <= 1.0
+        and abs(zu - DEFAULT_TIER_Z["mid"]) <= 1.0
+        and abs(zd - DEFAULT_TIER_Z["low"]) <= 1.0
+    )
+    if not z_ok:
+        return False, f"tier_z_off P={zp} U={zu} D={zd} expect={DEFAULT_TIER_Z}"
+    hard = clash_check(rg, routes=list(rg.routes.values()))["hard_count"]
+    best = 1e9
+    ids = ["L-RACK-P", "L-RACK-U", "L-RACK-D"]
+    for i in range(3):
+        for j in range(i + 1, 3):
+            p1 = [(p["x"], p["y"], p["z"]) for p in rg.routes[ids[i]]["points"]]
+            p2 = [(p["x"], p["y"], p["z"]) for p in rg.routes[ids[j]]["points"]]
+            for a, b in zip(p1, p1[1:]):
+                for c, d in zip(p2, p2[1:]):
+                    dist, _, _ = segment_distance(a, b, c, d)
+                    best = min(best, dist)
+    ok = hard == 0 and best > 0.05
+    return ok, f"rich={got} zP={zp} zU={zu} zD={zd} hard={hard} min_sep={best:.4f}"
+
+
+def B12() -> tuple[bool, str]:
+    """MSS SP-58 kinematic types; pinned counts on the rich fixture."""
+    from threadforge.ingest_dexpi import load_fixture
+    from threadforge.routing import generate_routes_astar
+    from threadforge.supports_mss import MSS_TYPE, support_types_kinematic, type_counts
+
+    g = load_fixture("sample_pid_rich.xml")
+    generate_routes_astar(g)
+    pinned = {
+        "LINE-200-P-1001": {"anchor": 2, "guide": 1, "shoe": 0, "spring_hanger": 0},
+        "LINE-200-P-1002": {"anchor": 2, "guide": 5, "shoe": 0, "spring_hanger": 1},
+        "LINE-210-G-2001": {"anchor": 2, "guide": 2, "shoe": 0, "spring_hanger": 0},
+        "LINE-200-D-1010": {"anchor": 2, "guide": 2, "shoe": 0, "spring_hanger": 0},
+    }
+    got: dict[str, dict[str, int]] = {}
+    cited = True
+    for lid in pinned:
+        sup = g.routes[lid]["supports_mss"]
+        got[lid] = type_counts(sup)
+        if any(s.get("standard") != "MSS SP-58" or s.get("mss_sp58") not in MSS_TYPE.values() for s in sup):
+            cited = False
+    # Crafted kinematics (independent of A*).
+    shoe = type_counts(support_types_kinematic([(0.0, 0.0, 5.0), (20.0, 0.0, 5.0)], '6"', insulated=True))
+    spr = type_counts(support_types_kinematic([(0.0, 0.0, 0.0), (0.0, 0.0, 7.0)], '4"', insulated=False))
+    rules_ok = shoe["anchor"] == 2 and shoe["shoe"] >= 1 and shoe["guide"] >= 1 and spr["spring_hanger"] >= 1
+    ok = got == pinned and cited and rules_ok
+    return ok, f"rich={got} cited={cited} shoe={shoe} spring={spr}"
+
+
+def B13() -> tuple[bool, str]:
+    """B31.3 319.4.1 screen; rich no_design_temp; 200°C line needs U-loop."""
+    from threadforge.flexibility import (
+        STATUS_NEEDS,
+        STATUS_NO_TEMP,
+        crafted_hot_line_graph,
+        screen_graph,
+        thermal_y_mm,
+    )
+    from threadforge.ingest_dexpi import load_fixture
+    from threadforge.routing import generate_routes_astar
+    from threadforge.tables import B31_3_319_4_1_K_SI, table_c1_epsilon_mm_per_m
+
+    g = load_fixture("sample_pid_rich.xml")
+    generate_routes_astar(g)
+    rich = screen_graph(g)
+    if not rich or any(s["status"] != STATUS_NO_TEMP for s in rich.values()):
+        return False, f"rich={ {k: v['status'] for k, v in rich.items()} }"
+    hot = crafted_hot_line_graph(200.0, 10.0)
+    scr = screen_graph(hot)["LINE-HOT-200C"]
+    cite_ok = "319.4.1" in (scr.get("citation") or "") and "C-1" in (scr.get("citation") or "")
+    loop = scr.get("u_loop") or {}
+    y_ok = abs(float(scr["Y_mm"]) - thermal_y_mm(200.0, 10.0)) < 1e-6
+    eps = table_c1_epsilon_mm_per_m(200.0)
+    ratio_fail = scr["status"] == STATUS_NEEDS and (
+        scr["ratio"] == "inf" or float(scr["ratio"]) > B31_3_319_4_1_K_SI
+    )
+    loop_ok = (
+        loop.get("kind") == "u_loop"
+        and float(loop.get("protrusion_m") or 0) > 0
+        and loop.get("proposed_ratio") is not None
+        and float(loop["proposed_ratio"]) <= B31_3_319_4_1_K_SI
+        and "319.4.1" in (loop.get("formula") or "")
+    )
+    ok = cite_ok and y_ok and ratio_fail and loop_ok and len(rich) == 4
+    return ok, (
+        f"rich_status=no_design_temp n={len(rich)} hot={scr['status']} "
+        f"Y={scr.get('Y_mm')} eps200={eps:.4f} loop_P={loop.get('protrusion_m')} "
+        f"proposed_ratio={loop.get('proposed_ratio')} cite={cite_ok}"
+    )
+
+
+def B14() -> tuple[bool, str]:
+    """Clash: structure + insulation OD + 600 mm access; rich+IFC hard 0; crafted ≥1 each."""
+    from threadforge.clash import ACCESS_HEMISPHERE_M, ACCESS_RULE, clash_check
+    from threadforge.exporters.ifc_in import attach_ifc_obstacles, public_rack_path
+    from threadforge.graph import TopologyGraph
+    from threadforge.ingest_dexpi import load_fixture
+    from threadforge.models import Equipment, Nozzle, Pipeline
+    from threadforge.routing import generate_routes_astar
+
+    if ACCESS_HEMISPHERE_M != 0.6 or "PNF0200" not in ACCESS_RULE:
+        return False, f"access_rule={ACCESS_RULE} r={ACCESS_HEMISPHERE_M}"
+    g = load_fixture("sample_pid_rich.xml")
+    attach_ifc_obstacles(g, public_rack_path())
+    generate_routes_astar(g)
+    rich = clash_check(g)
+    if rich["hard_count"] != 0:
+        return False, f"rich+ifc hard={rich['hard_count']} {rich.get('hard_by_category')}"
+
+    cg = TopologyGraph()
+
+    def _line(
+        lid: str,
+        a: tuple[float, float, float],
+        b: tuple[float, float, float],
+        **meta: object,
+    ) -> None:
+        ea, eb = f"{lid}-A", f"{lid}-B"
+        na, nb = f"{ea}-N", f"{eb}-N"
+        cg.equipment[ea] = Equipment(id=ea, tag=ea, nozzles=[na])
+        cg.equipment[eb] = Equipment(id=eb, tag=eb, nozzles=[nb])
+        cg.nozzles[na] = Nozzle(id=na, tag="N", equipment_id=ea, x=a[0], y=a[1], z=a[2])
+        cg.nozzles[nb] = Nozzle(id=nb, tag="N", equipment_id=eb, x=b[0], y=b[1], z=b[2])
+        cg.pipelines[lid] = Pipeline(
+            id=lid, line_number=lid, from_tag=na, to_tag=nb, nominal_bore='6"', metadata=dict(meta)
+        )
+        cg.routes[lid] = {
+            "line_id": lid,
+            "line_number": lid,
+            "from": na,
+            "to": nb,
+            "nominal_bore": '6"',
+            "geometry_source": "nozzle_xyz",
+            "insulation_mm": meta.get("insulation_mm", 0),
+            "points": [{"x": a[0], "y": a[1], "z": a[2]}, {"x": b[0], "y": b[1], "z": b[2]}],
+        }
+
+    _line("L-STR", (0.0, 0.0, 5.0), (10.0, 0.0, 5.0))
+    cg.metadata["structure_aabbs"] = [(4.0, -1.0, 4.0, 6.0, 1.0, 6.0)]
+    _line("L-INS-A", (0.0, 5.0, 2.0), (10.0, 5.0, 2.0), insulation_mm=50.0)
+    _line("L-INS-B", (0.0, 5.22, 2.0), (10.0, 5.22, 2.0), insulation_mm=50.0)
+    _line("L-ACC-V", (0.0, 10.0, 3.0), (4.0, 10.0, 3.0))
+    _line("L-ACC-X", (2.0, 10.15, 3.1), (2.0, 12.0, 3.1))
+    cg.metadata["access_valves"] = [{"id": "HV-1", "line_id": "L-ACC-V", "xyz": (2.0, 10.0, 3.0)}]
+    crafted = clash_check(cg, routes=list(cg.routes.values()))
+    by = crafted.get("hard_by_category") or {}
+    ok = (
+        rich["hard_count"] == 0
+        and int(by.get("pipe_vs_structure") or 0) >= 1
+        and int(by.get("insulation") or 0) >= 1
+        and int(by.get("access") or 0) >= 1
+    )
+    return ok, f"rich_hard=0 crafted={by} access_m={ACCESS_HEMISPHERE_M}"
+
+
+def B15() -> tuple[bool, str]:
+    """Hypothesis properties: A* vs random AABB; segment_distance vs brute ±1 mm."""
+    proc = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            "-q",
+            "-p",
+            "no:cacheprovider",
+            str(ROOT / "tests" / "test_hypothesis_geom.py"),
+        ],
+        cwd=str(ROOT),
+        capture_output=True,
+        text=True,
+        timeout=180,
+    )
+    text = (proc.stdout or "") + "\n" + (proc.stderr or "")
+    # pytest -q summary like "2 passed in 1.23s"
+    m = re.search(r"(\d+) passed", text)
+    npass = int(m.group(1)) if m else 0
+    failed = proc.returncode != 0
+    ok = (not failed) and npass >= 2
+    return ok, f"pytest_rc={proc.returncode} passed={npass} tail={text.strip().splitlines()[-1] if text.strip() else '-'}"
+
+
 def _b_unstarted(bid: str) -> Callable[[], tuple[bool, str]]:
     def _fn() -> tuple[bool, str]:
         ev_dir = ROOT / "artifacts" / "ci"
@@ -1263,6 +1515,12 @@ _B_IMPL: dict[str, Callable[[], tuple[bool, str]]] = {
     "B07": B07,
     "B08": B08,
     "B09": B09,
+    "B10": B10,
+    "B11": B11,
+    "B12": B12,
+    "B13": B13,
+    "B14": B14,
+    "B15": B15,
 }
 
 B_CHECKS: list[tuple[str, Callable[[], tuple[bool, str]]]] = [

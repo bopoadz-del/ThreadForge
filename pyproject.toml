@@ -16,7 +16,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=7.0", "ruff>=0.4", "mypy>=1.8", "httpx>=0.27"]
+dev = ["pytest>=7.0", "ruff>=0.4", "mypy>=1.8", "httpx>=0.27", "hypothesis>=6.0"]
 ifc = ["ifcopenshell>=0.7"]
 dxf = ["ezdxf>=1.0"]
 xsd = ["lxml>=4.9", "xmlschema>=3.3"]
