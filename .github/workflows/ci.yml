@@ -16,7 +16,7 @@ jobs:
       - name: Install
         run: |
           python -m pip install -U pip
-          pip install -e ".[dev,ifc,dxf,xsd,server]"
+          pip install -e ".[dev,ifc,dxf,xsd,server,pdf]"
       - name: Standing gate
         run: |
           ruff check src tests scripts
@@ -106,7 +106,7 @@ jobs:
       - name: Install
         run: |
           python -m pip install -U pip
-          pip install -e ".[dev,ifc,dxf,xsd,server]"
+          pip install -e ".[dev,ifc,dxf,xsd,server,pdf]"
       - name: Acceptance A01–A30 / B01–B40
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -126,7 +126,7 @@ jobs:
       - name: Install
         run: |
           python -m pip install -U pip
-          pip install -e ".[dev,ifc,dxf,xsd,server]"
+          pip install -e ".[dev,ifc,dxf,xsd,server,pdf]"
       - name: Mutation probes
         run: python scripts/mutation_probes.py
 

@@ -22,7 +22,8 @@ dxf = ["ezdxf>=1.0"]
 xsd = ["lxml>=4.9", "xmlschema>=3.3"]
 server = ["fastapi>=0.110", "uvicorn>=0.27"]
 xlsx = ["openpyxl>=3.1"]
-all = ["threadforge[dev,ifc,dxf,xsd,server,xlsx]"]
+pdf = ["reportlab>=4.0", "pypdf>=4.0"]
+all = ["threadforge[dev,ifc,dxf,xsd,server,xlsx,pdf]"]
 
 [project.scripts]
 threadforge = "threadforge.cli:main"
@@ -55,5 +56,5 @@ disallow_untyped_calls = false
 disallow_untyped_decorators = false
 
 [[tool.mypy.overrides]]
-module = ["ifcopenshell.*", "ezdxf.*", "lxml.*", "xmlschema.*", "uvicorn.*", "openpyxl.*"]
+module = ["ifcopenshell.*", "ezdxf.*", "lxml.*", "xmlschema.*", "uvicorn.*", "openpyxl.*", "reportlab.*", "pypdf.*"]
 ignore_missing_imports = true
