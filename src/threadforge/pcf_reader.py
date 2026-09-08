@@ -80,9 +80,10 @@ class PCFDocument:
 
 
 _COMPONENT_START = re.compile(
-    r"^(PIPE|ELBOW|FLANGE|GASKET|VALVE|REDUCER|TEE|SUPPORT|CAP|OLET|INSTRUMENT)\b",
+    r"^(PIPE|ELBOW|FLANGE|GASKET|VALVE|REDUCER|TEE|SUPPORT|CAP|OLET|INSTRUMENT|WELD)\b",
     re.I,
 )
+_SPOOL_ID = re.compile(r"SPOOL-IDENTIFIER\s+(\S+)", re.I)
 _END_POINT = re.compile(
     r"END-POINT\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)"
     r"(?:\s+(\d+(?:\.\d+)?))?",
@@ -239,6 +240,10 @@ def parse_pcf(text_or_path: Union[str, Path]) -> PCFDocument:
         if a1:
             current.tag = a1.group(1).strip()
             continue
+        sp = _SPOOL_ID.search(line)
+        if sp:
+            current.attrs["SPOOL-IDENTIFIER"] = sp.group(1).strip()
+            continue
         # generic ATTR
         if line.upper().startswith("COMPONENT-ATTRIBUTE"):
             parts = line.split(None, 1)
@@ -268,7 +273,7 @@ def total_centreline_length_mm(doc: PCFDocument) -> float:
     """Sum centreline lengths for PIPE/ELBOW and non-zero fittings (excludes SUPPORT)."""
     total = 0.0
     for c in doc.components:
-        if c.kind == "SUPPORT":
+        if c.kind in ("SUPPORT", "WELD"):
             continue
         total += c.length_mm()
     return total
@@ -277,7 +282,7 @@ def total_centreline_length_mm(doc: PCFDocument) -> float:
 def assert_no_zero_length(doc: PCFDocument, tol_mm: float = 0.5) -> None:
     """Raise if any non-SUPPORT component has zero length (E4)."""
     for c in doc.components:
-        if c.kind == "SUPPORT":
+        if c.kind in ("SUPPORT", "WELD"):
             continue
         if c.length_mm() < tol_mm:
             raise PCFParseError(
@@ -287,7 +292,7 @@ def assert_no_zero_length(doc: PCFDocument, tol_mm: float = 0.5) -> None:
 
 def assert_gasket_flanked_by_flanges(doc: PCFDocument) -> None:
     """Every GASKET must be immediately between two FLANGE components."""
-    positioned = [c for c in doc.components if c.kind != "SUPPORT"]
+    positioned = [c for c in doc.components if c.kind not in ("SUPPORT", "WELD")]
     for i, c in enumerate(positioned):
         if c.kind != "GASKET":
             continue

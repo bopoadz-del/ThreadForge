@@ -32,6 +32,7 @@ NPS_OD_MM: dict[float, float] = {
     8.0: 219.1,
     10.0: 273.0,
     12.0: 323.8,
+    24.0: 610.0,  # ASME B36.10M Table 1 NPS 24
 }
 
 # Schedule → wall thickness mm by NPS. ASME B36.10M (selected).
@@ -46,6 +47,7 @@ WALL_THICKNESS_MM: dict[tuple[float, str], float] = {
     (4.0, "80"): 8.56,
     (2.0, "80"): 5.54,
     (3.0, "80"): 7.62,
+    (24.0, "40"): 17.48,  # ASME B36.10M NPS 24 Sch 40 / STD
 }
 
 STEEL_DENSITY_KG_M3 = 7850.0  # carbon steel
@@ -235,6 +237,18 @@ B31_3_C1_CS_MM_PER_M: dict[float, float] = {
 
 # ASME B31.3 §319.4.1 SI constant (D, Y in mm; L, U in m) for ferrous materials.
 B31_3_319_4_1_K_SI = 208000.0
+
+# ASME B31.3 paragraph 341.4.1 — Examination, Normal Fluid Service.
+# (a) visual examination of all fabrication.
+# (b)(1) not less than 5% of circumferential butt and miter groove welds
+#     shall be examined by random radiography or ultrasonic examination.
+# Citation: ASME B31.3 Process Piping, paragraph 341.4.1 (Normal Fluid Service).
+B31_3_341_4_1_NORMAL_RT_PCT = 5.0
+B31_3_341_4_1_CITE = (
+    "ASME B31.3 Process Piping, paragraph 341.4.1 Normal Fluid Service "
+    "(b)(1): not less than 5% of circumferential butt and miter groove welds "
+    "shall be examined by random radiography or ultrasonic examination"
+)
 
 
 def table_c1_epsilon_mm_per_m(design_temp_c: float) -> float:

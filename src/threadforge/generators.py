@@ -25,6 +25,7 @@ from threadforge.routing import (
     generate_supports_from_routes,
     get_route,
 )
+from threadforge.spooling import apply_spooling
 from threadforge.tables import (
     flange_bolts,
     flange_thickness_m,
@@ -260,7 +261,9 @@ def generate_isometric(
     line_id: str,
     output_dir: Optional[Path] = None,
 ) -> ArtefactDescriptor:
-    """Generate isometric package: JSON descriptor + SVG line sketch."""
+    """Generate isometric package: JSON descriptor + one SVG sheet per spool."""
+    from threadforge.iso_sheets import sheet_iso_svg, spool_bom
+
     pipe = graph.pipelines.get(line_id)
     if pipe is None:
         return ArtefactDescriptor(
@@ -272,6 +275,44 @@ def generate_isometric(
         )
     route = get_route(graph, line_id)
     fabricated = route.get("geometry_source") == "fabricated"
+    report = get_spool_report(graph, line_id)
+    spools = list(report.get("spools") or [])
+    welds = list(report.get("welds") or [])
+    n_of = max(len(spools), 1)
+    sheets: list[dict[str, Any]] = []
+    svgs: list[str] = []
+    for i, sp in enumerate(spools or [{"spool_id": "S-NONE-01", "axis_points": [], "length_m": 0.0}], start=1):
+        sid = str(sp.get("spool_id") or "")
+        sheet_welds = [w for w in welds if w.get("spool_id") == sid]
+        bom = spool_bom(sp)
+        svg = sheet_iso_svg(
+            sp,
+            line_number=pipe.line_number,
+            sheet_n=i,
+            sheet_n_of=n_of,
+            welds=sheet_welds,
+            bom=bom,
+        )
+        svgs.append(svg)
+        dim_m = int(round(float(sp.get("length_m") or 0.0) * 1000))
+        sheets.append(
+            {
+                "sheet": i,
+                "n_of": n_of,
+                "spool_id": sid,
+                "svg": svg,
+                "bom": bom,
+                "cut_lengths_m": list(sp.get("cut_lengths_m") or []),
+                "length_m": float(sp.get("length_m") or 0.0),
+                "dim_sum_mm": dim_m,
+                "weld_ids": [w.get("weld_id") for w in sheet_welds],
+            }
+        )
+    if not sheets:
+        title = pipe.line_number + (" [FABRICATED GEOMETRY]" if fabricated else "")
+        svg = _iso_svg(route, title)
+        svgs = [svg]
+        sheets = [{"sheet": 1, "n_of": 1, "spool_id": None, "svg": svg, "bom": [], "dim_sum_mm": 0}]
     package = {
         "line_number": pipe.line_number,
         "line_id": pipe.id,
@@ -288,6 +329,8 @@ def generate_isometric(
             }
             for cid in pipe.component_tags
         ],
+        "sheets": [{k: v for k, v in s.items() if k != "svg"} for s in sheets],
+        "sheet_count": len(sheets),
         "route": route,
         "drawing_format": "iso-package-v1",
         "projection": "30deg",
@@ -298,7 +341,7 @@ def generate_isometric(
         "note": "Structured iso package — not a certified ISOGEN drawing",
     }
     title = pipe.line_number + (" [FABRICATED GEOMETRY]" if fabricated else "")
-    svg = _iso_svg(route, title, bom=package.get("bom"))
+    svg = svgs[0] if svgs else _iso_svg(route, title, bom=package.get("bom"))
     paths: dict[str, str] = {}
     if output_dir is not None:
         iso_dir = _ensure_dir(Path(output_dir) / "iso")
@@ -308,6 +351,12 @@ def generate_isometric(
         json_path.write_text(json.dumps(package, indent=2), encoding="utf-8")
         svg_path.write_text(svg, encoding="utf-8")
         paths = {"json": str(json_path), "svg": str(svg_path)}
+        sheet_files: list[str] = []
+        for i, s in enumerate(sheets, start=1):
+            p = iso_dir / f"{safe}-S{i:02d}.iso.svg"
+            p.write_text(str(s.get("svg") or svg), encoding="utf-8")
+            sheet_files.append(str(p))
+        paths["sheets"] = ",".join(sheet_files)
         package["files"] = paths
 
     return ArtefactDescriptor(
@@ -756,6 +805,16 @@ def write_pcf_text(graph: TopologyGraph, line_id: str) -> str:
             seg["_bore_a"] = current_bore
             seg["_bore_b"] = current_bore
 
+    schedule = str((pipe.metadata or {}).get("schedule") or "40")
+    chain, spool_payload = apply_spooling(
+        chain,
+        line_id=line_id,
+        line_number=pipe.line_number,
+        nominal_bore=pipe.nominal_bore,
+        schedule=schedule,
+    )
+    route["spools"] = spool_payload
+
     # --- emit ---
     lines: list[str] = []
     lines.append("UNITS-BORE               MM")
@@ -772,6 +831,8 @@ def write_pcf_text(graph: TopologyGraph, line_id: str) -> str:
     lines.append(f"ATTRIBUTE3               TO {pipe.to_tag or 'UNK'}")
     if fabricated:
         lines.append("ATTRIBUTE9               GEOMETRY FABRICATED")
+    for sp in spool_payload.get("spools") or []:
+        lines.append(f"SPOOL-IDENTIFIER         {sp['spool_id']}")
     lines.append("")
 
     for seg in chain:
@@ -784,10 +845,18 @@ def write_pcf_text(graph: TopologyGraph, line_id: str) -> str:
             bore_a = seg.get("_bore_a") or bore_str
         lines.append(f"    END-POINT             {_pcf_coord(*seg['a'])} {bore_a}")
         lines.append(f"    END-POINT             {_pcf_coord(*seg['b'])} {bore_b}")
+        if seg.get("spool_id"):
+            lines.append(f"    SPOOL-IDENTIFIER      {seg['spool_id']}")
         if kind == "ELBOW":
             lines.append(f"    CENTRE-POINT          {_pcf_coord(*seg['centre'])}")
             lines.append(f"    SKEY                  {seg.get('skey', 'ELBW')}")
             lines.append(f"    ANGLE                 {seg.get('angle', 9000)}")
+        elif kind == "WELD":
+            lines.append(f"    SKEY                  {seg.get('skey', 'WW')}")
+            if seg.get("weld_id"):
+                lines.append(f"    COMPONENT-ATTRIBUTE1  {seg['weld_id']}")
+            if seg.get("shop_field"):
+                lines.append(f"    COMPONENT-ATTRIBUTE2  {seg['shop_field']}")
         elif kind != "PIPE":
             if seg.get("skey"):
                 lines.append(f"    SKEY                  {seg['skey']}")
@@ -823,6 +892,16 @@ def write_pcf_text(graph: TopologyGraph, line_id: str) -> str:
     )
     return header_note + "\n".join(lines)
 
+
+
+def get_spool_report(graph: TopologyGraph, line_id: str) -> dict[str, Any]:
+    """Return the B16 spool/weld report, generating the PCF chain if needed."""
+    route = get_route(graph, line_id)
+    existing = route.get("spools")
+    if isinstance(existing, dict) and existing.get("spools"):
+        return existing
+    write_pcf_text(graph, line_id)
+    return get_route(graph, line_id).get("spools") or {}
 
 
 def generate_pcf(
@@ -863,6 +942,8 @@ def generate_pcf(
             "route_length_m": float(get_route(graph, line_id).get("length_m") or 0.0),
             "text_preview": "\n".join(text.splitlines()[:20]),
             "bytes": len(text.encode("utf-8")),
+            "spool_count": int((get_route(graph, line_id).get("spools") or {}).get("spool_count") or 0),
+            "weld_count": int((get_route(graph, line_id).get("spools") or {}).get("weld_count") or 0),
             "wall": "Exact Autodesk ISOGEN PCF schema needs proprietary docs — see WALLS.md",
         },
         message="PCF text written" if out_path else "PCF text generated",
@@ -909,7 +990,7 @@ def write_ga_svg(graph: TopologyGraph) -> str:
         f'<text x="{pad}" y="28" fill="#0f172a" font-family="sans-serif" font-size="18" font-weight="bold">'
         f"GA / Plot Plan — {graph.metadata.get('plant', 'plant')}</text>",
         '<text x="50" y="48" fill="#64748b" font-family="sans-serif" font-size="11">'
-        "DesignVolume AABB + equipment tags (2D top view)</text>",
+        "DesignVolume AABB + equipment tags (2D top view) — HEURISTIC — NOT FOR CONSTRUCTION</text>",
     ]
     # Volumes
     for v in vols:

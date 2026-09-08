@@ -47,6 +47,7 @@ PCF_KEYWORDS = {
     "ATTRIBUTE3",
     "ATTRIBUTE4",
     "WELD",
+    "SPOOL-IDENTIFIER",
     "MESSAGE",
 }
 
