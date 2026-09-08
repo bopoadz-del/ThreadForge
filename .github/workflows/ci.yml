@@ -198,10 +198,13 @@ jobs:
         run: |
           SHORT="$(echo "${GITHUB_SHA}" | cut -c1-12)"
           BASE="ghcr.io/${GITHUB_REPOSITORY_OWNER}/threadforge"
-          docker build -t "${BASE}:${GITHUB_SHA}" -t "${BASE}:sha-${SHORT}" -t "${BASE}:v2.0.0" .
+          docker build -t "${BASE}:${GITHUB_SHA}" -t "${BASE}:sha-${SHORT}" .
           docker push "${BASE}:${GITHUB_SHA}"
           docker push "${BASE}:sha-${SHORT}"
-          docker push "${BASE}:v2.0.0"
+          if [ "${GITHUB_REF}" = "refs/tags/v2.0.0" ]; then
+            docker tag "${BASE}:${GITHUB_SHA}" "${BASE}:v2.0.0"
+            docker push "${BASE}:v2.0.0"
+          fi
   release:
     if: github.ref == 'refs/tags/v2.0.0'
     runs-on: ubuntu-latest
