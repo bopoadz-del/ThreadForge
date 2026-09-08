@@ -32,7 +32,7 @@ live plant credentials, or a CAD kernel. Each wall lists **why** and the
 | | |
 |---|---|
 | **Why** | Autodesk Navisworks/Revit, AVEVA, Hexagon, and ODA/Teigha SDKs require commercial licenses. |
-| **Workaround** | No NWD/RVT/DGN/DWG ingest. **IFC4** out via `ifcopenshell` (`exporters/ifc.py`) and **DXF** via `ezdxf` (`exporters/dxf.py`). |
+| **Workaround** | No NWD/RVT/DGN/DWG ingest (`ifc_in` logs one WALL line and returns empty). **IFC4** out via `ifcopenshell` (`exporters/ifc.py`); **IFC4-in** structure/equipment → AABB/capsule (`exporters/ifc_in.py`); **DXF** via `ezdxf` (`exporters/dxf.py`). |
 
 ## 5. Autodesk / AVEVA / HEXAGON live APIs
 

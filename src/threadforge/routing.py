@@ -360,7 +360,21 @@ def collect_obstacles(
         for a, b in zip(pts, pts[1:]):
             capsules.append({"a": a, "b": b, "radius": radius, "line_id": r.get("line_id")})
     volumes = [v for v in graph.volumes.values()]
-    return {"aabbs": aabbs, "capsules": capsules, "volumes": volumes}
+    ifc = (graph.metadata or {}).get("ifc_obstacles") or {}
+    for box in ifc.get("aabbs") or []:
+        aabbs.append((float(box[0]), float(box[1]), float(box[2]), float(box[3]), float(box[4]), float(box[5])))
+    for cap in ifc.get("capsules") or []:
+        capsules.append(cap)
+    out: dict[str, Any] = {"aabbs": aabbs, "capsules": capsules, "volumes": volumes}
+    rack = (graph.metadata or {}).get("rack") or {}
+    if rack.get("enforce"):
+        from threadforge.rack import rack_tier_z, rack_xy_aabb
+
+        out["preferred_z"] = None  # filled per-line in route_pipeline_astar
+        out["rack_aabb"] = rack_xy_aabb(graph)
+        out["tier_weight"] = float(rack.get("tier_weight") or 4.0)
+        out["rack_tier_z_fn"] = rack_tier_z
+    return out
 
 
 def _point_in_aabb(p: Point3, box: tuple[float, float, float, float, float, float]) -> bool:
@@ -450,6 +464,10 @@ def route_astar(
             return True
         return False
 
+    preferred_z = obstacles.get("preferred_z")
+    rack_aabb = obstacles.get("rack_aabb")
+    tier_weight = float(obstacles.get("tier_weight") or 4.0)
+
     def soft_cost(g: tuple[int, int, int]) -> float:
         p = dequant(g)
         cost = 0.0
@@ -461,6 +479,13 @@ def route_astar(
             )
             if not inside:
                 cost += 2.0 * grid
+        if preferred_z is not None:
+            # Global Z bias so A* cannot dodge the rack XY to skip the tier.
+            in_rack = True
+            if rack_aabb is not None:
+                xmin, ymin, xmax, ymax = rack_aabb[0], rack_aabb[1], rack_aabb[2], rack_aabb[3]
+                in_rack = xmin <= p[0] <= xmax and ymin <= p[1] <= ymax
+            cost += abs(p[2] - float(preferred_z)) * (tier_weight if in_rack else tier_weight * 0.75)
         return cost
 
     # node: (f, g_cost, gx,gy,gz, parent_dir, bends, parent_key)
@@ -569,6 +594,9 @@ def route_pipeline_astar(
     start_explicit = start_stub or nozzle_xyz_explicit(graph, pipe.from_tag)
     end_explicit = end_stub or nozzle_xyz_explicit(graph, pipe.to_tag)
     fabricated = start_explicit is None or end_explicit is None
+    from threadforge.rack import assign_route_tier
+
+    tier_meta = assign_route_tier(graph, pipe.service)
     if fabricated:
         # Fabricated geometry — single call to manhattan stub, flagged.
         base = route_pipeline(graph, pipe, support_spacing=support_spacing)
@@ -577,6 +605,7 @@ def route_pipeline_astar(
             base["geometry_source"] = "tee_stub"
         else:
             base["accuracy"] = "fabricated_fallback"
+        base.update(tier_meta)
         return base
 
     start = start_explicit
@@ -598,9 +627,14 @@ def route_pipeline_astar(
         clearance=clearance,
         exclude_equipment=excl_eq,
     )
+    if (graph.metadata or {}).get("rack", {}).get("enforce"):
+        obstacles["preferred_z"] = tier_meta["rack_tier_z"]
     service = (pipe.service or "").upper()
     drain = service in {"DRAIN", "SEWER", "VENT"}
-    if drain and start[2] < end[2]:
+    rack_enforce = bool((graph.metadata or {}).get("rack", {}).get("enforce"))
+    # Gravity-drain monotonic Z is skipped when a rack tier is enforced — the
+    # line must be allowed to drop to the low tier and rise back to nozzles.
+    if drain and start[2] < end[2] and not rack_enforce:
         start, end = end, start
         flipped = True
     else:
@@ -611,7 +645,7 @@ def route_pipeline_astar(
         obstacles=obstacles,
         grid=grid,
         clearance=clearance,
-        drain_monotonic=drain,
+        drain_monotonic=drain and not rack_enforce,
     )
     if result.get("accuracy") == "manhattan_fallback":
         # Only production call site for route_pipeline as A* fallback.
@@ -619,6 +653,7 @@ def route_pipeline_astar(
         base["accuracy"] = "manhattan_fallback"
         base["astar_expansions"] = result.get("expansions")
         base["status"] = base.get("status", "ok")
+        base.update(tier_meta)
         return base
 
     pts = result["points"]
@@ -660,6 +695,7 @@ def route_pipeline_astar(
         out_ast["start_source"] = "tee_stub"
     if end_stub:
         out_ast["end_source"] = "tee_stub"
+    out_ast.update(tier_meta)
     return out_ast
 
 
@@ -696,6 +732,14 @@ def generate_routes_astar(graph: TopologyGraph, support_spacing: float = 3.0, gr
             r["length_source"] = "manhattan_fallback"
         else:
             r["length_source"] = r.get("accuracy") or "unknown"
+        from threadforge.supports_mss import support_types_kinematic
+
+        pts_xyz = [(pt["x"], pt["y"], pt["z"]) for pt in r.get("points") or []]
+        insulated = bool((p.metadata or {}).get("insulated") or (p.metadata or {}).get("insulation"))
+        r["supports_mss"] = support_types_kinematic(pts_xyz, nominal_bore=p.nominal_bore, insulated=insulated)
+        from threadforge.flexibility import design_temp_of, screen_line
+
+        r["flex_screen"] = screen_line(pts_xyz, p.nominal_bore, design_temp_of(p))
         routes.append(r)
         graph.routes[p.id] = r
     total_len = sum(r["length_m"] for r in routes)

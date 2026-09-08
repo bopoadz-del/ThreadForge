@@ -75,6 +75,12 @@ OPC element XML (CC-BY-4.0) with shared `CrossPageConnectionAssignmentClass` so
 cross-file OPC → FromTo joins are pinned. Not a claim that Covestro UER drawings
 were converted.
 
+## Public IFC (B10)
+
+| Asset | Notes |
+|---|---|
+| `ifc/pipe_rack.ifc` | ifcopenshell-generated IFC4 rack (columns/beams/tank + BoundingBox). See `ifc/SOURCES.md`. |
+
 ## Local project fixtures (non-DEXPI-public)
 
 - `fixtures/sample_pid.xml` (lite demo)

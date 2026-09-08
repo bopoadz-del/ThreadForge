@@ -10,6 +10,8 @@ Sources (public / standards summaries commonly republished):
 - ASME B16.10 — valve face-to-face / end-to-end dimensions (Class 150 gate / globe).
 - Gasket thickness 3 mm — common compressed non-asbestos sheet practice (not a code table).
 - ASME B31.3 — hydrostatic test pressure commonly 1.5 × design pressure.
+- ASME B31.3 Appendix C Table C-1 — carbon-steel thermal expansion (mm/m from 21 °C).
+- ASME B31.3 paragraph 319.4.1 — empirical flexibility criterion (SI K = 208000).
 """
 
 from __future__ import annotations
@@ -216,6 +218,50 @@ VALVE_F2F_MM_CL150_GATE: dict[float, float] = {
 }
 
 GASKET_THICKNESS_MM = 3.0  # common compressed sheet practice
+
+# ASME B31.3 Appendix C Table C-1 — carbon steel (A53 / A106 group).
+# Total linear thermal expansion, mm/m, from 21 °C (70 °F). Selected rows.
+# Citation: ASME B31.3 Process Piping, Appendix C, Table C-1.
+B31_3_C1_CS_MM_PER_M: dict[float, float] = {
+    21.0: 0.00,
+    38.0: 0.18,
+    93.0: 0.86,
+    149.0: 1.50,
+    204.0: 2.16,
+    260.0: 2.88,
+    316.0: 3.62,
+    371.0: 4.41,
+}
+
+# ASME B31.3 §319.4.1 SI constant (D, Y in mm; L, U in m) for ferrous materials.
+B31_3_319_4_1_K_SI = 208000.0
+
+
+def table_c1_epsilon_mm_per_m(design_temp_c: float) -> float:
+    """Carbon-steel thermal expansion mm/m from 21 °C — B31.3 Table C-1 (interpolated).
+
+    Citation: ASME B31.3 Process Piping, Appendix C, **Table C-1** (carbon steel).
+    """
+    t = float(design_temp_c)
+    table = B31_3_C1_CS_MM_PER_M
+    if t in table:
+        return table[t]
+    keys = sorted(table)
+    if t <= keys[0]:
+        return table[keys[0]]
+    if t >= keys[-1]:
+        return table[keys[-1]]
+    lo = max(k for k in keys if k <= t)
+    hi = min(k for k in keys if k >= t)
+    if hi == lo:
+        return table[lo]
+    frac = (t - lo) / (hi - lo)
+    return table[lo] + frac * (table[hi] - table[lo])
+
+
+def insulation_od_mm(nominal_bore: Optional[str], insulation_mm: float = 0.0) -> float:
+    """Outside diameter over insulation (mm) = B36.10 OD + 2 × insulation."""
+    return od_mm(nominal_bore) + 2.0 * float(insulation_mm)
 
 
 def flange_thickness_m(nominal_bore: Optional[str], flange_class: int = 150) -> float:
