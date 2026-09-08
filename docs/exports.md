@@ -119,3 +119,7 @@ Primavera XER `%T TASK` / `%T TASKPRED`. MS Project XML namespace
 
 `sample_schedule.json` `zones[]` are crane/laydown AABBs. `conflicts_by_day`
 counts hard / soft / craft / crane / laydown per calendar day.
+
+## Generated stamp
+
+AUTO-GENERATED stamp from `scripts/gen_docs.py`. Cascade kinds: isometric, quantities, test_pack, work_package, pcf, dlb, ga, csv, system, supports, routes, clash.

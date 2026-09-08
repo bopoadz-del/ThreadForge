@@ -24,6 +24,7 @@ def test_walled_cad_returns_empty(caplog):
     import logging
 
     dummy = ROOT / "tests" / "no_such.nwd"
+    logging.getLogger("threadforge.ifc_in").disabled = False
     with caplog.at_level(logging.WARNING, logger="threadforge.ifc_in"):
         obs = load_ifc_obstacles(dummy)
     assert obs["wall"] == "cad_reader"

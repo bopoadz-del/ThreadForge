@@ -97,31 +97,15 @@ ACCEPTANCE: 30/30 PASS
 
 | Capability | Status | Notes |
 |---|---|---|
-| DEXPI/Proteus-**shaped** XML parse | **REAL** (subset) | Lite + rich fixtures; see WALLS for XSD certification |
-| Multi-sheet, Equipment, Nozzle XYZ, PipingNetworkSegment, Instrument / ProcessInstrumentFunction, BatteryLimit | **REAL** | Attribute-tolerant |
-| Topology graph (tags, lines, from-to, BL) | **REAL** | In-memory |
-| Cascade dirty tracking + re-run | **REAL** | Marks artefacts/stages/WPs |
-| Test packs from system boundaries | **REAL** | Membership via connectivity |
-| Work packages from volumes × discipline | **REAL** | AWP-shaped CWP/IWP |
-| Schedule JSON/CSV import | **REAL** | |
-| Co-activity (time ∩ same volume) + volume report | **REAL** | JSON export |
-| Look-ahead + discipline filters (PIP/INS/ELE/TEL) + CSV | **REAL** | |
-| Maturity gate (block IFC export) | **REAL** | |
-| Quantities (counts + shared A* lengths) | **REAL** | Lengths from `graph.routes` (A*) |
-| CSV tag/line export | **REAL** | `.csv` files under `output/csv/` |
-| PCF writer | **REAL** (structurally valid) | Contiguous PIPE/ELBOW; certification WALL |
-| Isometric package | **REAL** (true 30° SVG + JSON) | Not ISOGEN stamped drawing — WALL |
-| GA / plot plan SVG + DXF | **REAL** | Volume AABB + equipment; ezdxf optional |
-| Piping routes + supports | **REAL** (A* + MSS spans) | Manhattan fallback flagged |
-| Clash detection | **REAL** (capsule math) | W7 removed |
-| IFC4 export | **REAL** (optional ifcopenshell) | NWD/RVT/DGN/DWG still WALL |
-| Engineering tables | **REAL** (B36.10/MSS/B16.5/B31.3) | Cited in `tables.py` |
-| FastAPI + MCP + SQLite registry | **REAL** | `threadforge.server` |
-| Agent SYSTEM.md + JSONL REPL | **REAL** | `agent/run_repl.py` |
-| Docker health evidence (A27) | **REAL** (measured) | `artifacts/ci/docker_health.json` from CI docker job; names parent sha |
-| CI run evidence (A28) | **REAL** (measured) | `artifacts/ci/ci_run.json` from Actions run; names parent sha |
-| Release tag v1.0.1 (A30) | **REAL** (measured at tag) | local+remote `v1.0.1` at the same peeled sha |
-| Vendor DEXPI extensions / live APIs / client data | **WALL** | See WALLS.md |
+| DEXPI/Proteus-shaped XML parse | **REAL** | Lite + rich + TrainingTestCases; XSD via xmlschema |
+| Topology graph | **REAL** | Tags / lines / from-to / BL |
+| A* routing + clash | **REAL** | Capsule math; IFC-in AABB |
+| PCF writer | **REAL** | Contiguous PIPE/ELBOW; ISOGEN cert WALL |
+| Iso SVG/PDF + GA | **REAL** | 30° heuristic — not ISOGEN stamped |
+| Hydrotest B31.3 345.4.2 | **REAL** | Capped by B16.5 Table 2-1.1 |
+| AWP IWP release + XER/MSPDI | **REAL** | Vendored MSPDI XSD |
+| FastAPI + MCP + Alembic registry | **REAL** | SQLite+Postgres; RBAC 3 roles |
+| Vendor DEXPI extensions / live APIs | **WALL** | See WALLS.md |
 | Web 3D viewer / Gantt UI | **OUT OF SCOPE** | Data + tools only |
 
 ## Package layout

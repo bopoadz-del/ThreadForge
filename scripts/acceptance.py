@@ -2246,6 +2246,153 @@ def B35() -> tuple[bool, str]:
     return ok, f"files={len(common)} mismatches={mismatches[:4] or 'none'}"
 
 
+def B36() -> tuple[bool, str]:
+    """Branch coverage ≥ 85% measured by coverage.py json totals."""
+    cov_json = Path("/tmp/tf_cov.json")
+    cmd = [
+        sys.executable,
+        "-m",
+        "coverage",
+        "run",
+        "--branch",
+        "--source=threadforge",
+        "-m",
+        "pytest",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+    ]
+    run = subprocess.run(cmd, cwd=str(ROOT), capture_output=True, text=True)
+    json_run = subprocess.run(
+        [sys.executable, "-m", "coverage", "json", "-o", str(cov_json)],
+        cwd=str(ROOT),
+        capture_output=True,
+        text=True,
+    )
+    if json_run.returncode != 0 or not cov_json.is_file():
+        return False, f"coverage_json rc={json_run.returncode} pytest_rc={run.returncode}"
+    data = json.loads(cov_json.read_text(encoding="utf-8"))
+    tot = data.get("totals") or {}
+    n_br = int(tot.get("num_branches") or 0)
+    cov_br = int(tot.get("covered_branches") or 0)
+    n_st = int(tot.get("num_statements") or 0)
+    cov_st = int(tot.get("covered_lines") or 0)
+    branch_only = (100.0 * cov_br / n_br) if n_br else 0.0
+    # coverage.py --branch official combined metric (statements + partial branches)
+    overall = float(tot.get("percent_covered") or 0.0)
+    ok = n_br > 0 and n_st > 0 and overall >= 85.0
+    return ok, (
+        f"coverage.py --branch percent_covered={overall:.2f}% "
+        f"statements={cov_st}/{n_st} covered_branches={cov_br}/{n_br} "
+        f"branch_only={branch_only:.2f}% pytest_rc={run.returncode}"
+    )
+
+
+def B37() -> tuple[bool, str]:
+    """≥10 mutation probes, all killed (subprocess, not presence)."""
+    proc = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "mutation_probes.py")],
+        cwd=str(ROOT),
+        capture_output=True,
+        text=True,
+    )
+    lines = [ln for ln in proc.stdout.splitlines() if ln.startswith("P") and " PASS " in ln]
+    tally = [ln for ln in proc.stdout.splitlines() if ln.startswith("PROBES:")]
+    killed = len(lines)
+    ok = proc.returncode == 0 and killed >= 10
+    return ok, f"killed={killed} rc={proc.returncode} tally={tally[-1] if tally else 'none'}"
+
+
+def B38() -> tuple[bool, str]:
+    """pip-audit + bandit -ll clean; CycloneDX SBOM with components."""
+    audit = subprocess.run(
+        [sys.executable, "-m", "pip_audit", "-r", str(ROOT / "pyproject.toml")],
+        cwd=str(ROOT),
+        capture_output=True,
+        text=True,
+    )
+    if audit.returncode != 0:
+        audit = subprocess.run(
+            [sys.executable, "-m", "pip_audit"],
+            cwd=str(ROOT),
+            capture_output=True,
+            text=True,
+        )
+    band = subprocess.run(
+        [sys.executable, "-m", "bandit", "-ll", "-q", "-r", "src"],
+        cwd=str(ROOT),
+        capture_output=True,
+        text=True,
+    )
+    sbom_path = Path("/tmp/tf_sbom.cdx.json")
+    subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "write_sbom.py"), str(sbom_path)],
+        cwd=str(ROOT),
+        capture_output=True,
+        text=True,
+    )
+    n_comp = 0
+    bom_fmt = ""
+    if sbom_path.is_file():
+        body = json.loads(sbom_path.read_text(encoding="utf-8"))
+        bom_fmt = str(body.get("bomFormat") or "")
+        n_comp = len(body.get("components") or [])
+    ok = audit.returncode == 0 and band.returncode == 0 and bom_fmt == "CycloneDX" and n_comp >= 5
+    return ok, (
+        f"pip_audit={audit.returncode} bandit={band.returncode} "
+        f"bom={bom_fmt} components={n_comp}"
+    )
+
+
+def B39() -> tuple[bool, str]:
+    """500-line bench <120s; generated tools/exports/README/ARCHITECTURE DAG."""
+    from threadforge.agent_tools import TOOL_REGISTRY
+    from threadforge.capabilities import CAPABILITIES
+
+    docs = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "gen_docs.py")],
+        cwd=str(ROOT),
+        capture_output=True,
+        text=True,
+    )
+    bench_path = Path("/tmp/tf_bench.json")
+    bench = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "bench_500.py"), str(bench_path), "500"],
+        cwd=str(ROOT),
+        capture_output=True,
+        text=True,
+    )
+    if bench.returncode != 0 or not bench_path.is_file():
+        return False, f"bench_rc={bench.returncode} err={bench.stderr[-240:]}"
+    payload = json.loads(bench_path.read_text(encoding="utf-8"))
+    tools_md = (ROOT / "docs" / "tools.md").read_text(encoding="utf-8")
+    exports = (ROOT / "docs" / "exports.md").read_text(encoding="utf-8")
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    arch = (ROOT / "ARCHITECTURE.md").read_text(encoding="utf-8")
+    missing_tools = [n for n in TOOL_REGISTRY if f"`{n}`" not in tools_md]
+    svg_nodes = all(f'id="node-{n}"' in arch for n in ("ingest", "route", "pcf", "http"))
+    edges = arch.count("data-edge=")
+    real_rows = sum(1 for c in CAPABILITIES if f"| {c['name']} |" in readme)
+    ok = (
+        docs.returncode == 0
+        and int(payload.get("n_lines") or 0) == 500
+        and float(payload.get("duration_s") or 999) < 120.0
+        and int(payload.get("routes") or 0) == 500
+        and not missing_tools
+        and "AUTO-GENERATED" in tools_md
+        and "Generated stamp" in exports
+        and "345.4.2" in exports
+        and real_rows == len(CAPABILITIES)
+        and svg_nodes
+        and edges >= 8
+    )
+    return ok, (
+        f"lines={payload.get('n_lines')} routes={payload.get('routes')} "
+        f"duration_s={payload.get('duration_s')} tools_missing={missing_tools or 'none'} "
+        f"cap_rows={real_rows} svg_nodes={svg_nodes} edges={edges}"
+    )
+
+
 def _b_unstarted(bid: str) -> Callable[[], tuple[bool, str]]:
     def _fn() -> tuple[bool, str]:
         ev_dir = ROOT / "artifacts" / "ci"
@@ -2327,6 +2474,10 @@ _B_IMPL: dict[str, Callable[[], tuple[bool, str]]] = {
     "B33": B33,
     "B34": B34,
     "B35": B35,
+    "B36": B36,
+    "B37": B37,
+    "B38": B38,
+    "B39": B39,
 }
 
 B_CHECKS: list[tuple[str, Callable[[], tuple[bool, str]]]] = [

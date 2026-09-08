@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased (M6 B36–B39 — not v2.0.0)
+
+- B36: `coverage.py --branch` official `percent_covered` ≥ 85% (measured json totals).
+- B37: ten killed-mutation probes (P01–P10) in `scripts/mutation_probes.py`.
+- B38: `pip-audit` + `bandit -ll` clean; CycloneDX SBOM via `scripts/write_sbom.py`.
+- B39: 500-line synthetic bench < 120 s; generated `docs/tools.md`, exports stamp, README REAL/STUB, ARCHITECTURE DAG SVG.
+- Ingest/schedule XML parse uses `defusedxml` so bandit B314 is not raised.
+
 ## Unreleased (M5 B29–B35 — not v2.0.0)
 
 - B29: Alembic `0001_m5` applied to SQLite and Postgres; same revision + table set (artefacts, api_keys, audit_events, jobs, job_events).

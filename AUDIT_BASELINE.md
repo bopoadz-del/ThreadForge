@@ -400,3 +400,25 @@ B04, B36–B40: still `_b_unstarted` FAIL (`evidence_files=0`).
 
 **ACCEPTANCE: 32/40 PASS** locally (B01 + B05–B35) without token (B02/B03 FAIL token/parent sha).
 
+---
+
+## M6 — B36–B39 measured (coverage / probes / SBOM / bench+docs)
+
+Recorded 2026-09-08 after standing gate green + `python scripts/acceptance.py` B36–B39 on this M6 tip
+(started from M5 `9ff98df5ad12019aa74c1f5a84d66fe04155fbf8`).
+Checks PASS only on coverage.py json totals, probe kill counts, pip-audit/bandit
+exit codes + CycloneDX component count, and bench.json n_lines/routes/duration.
+No file-presence PASS path. B04 and B40 remain unstarted. B02 stays red
+(token/HEAD^ CI). No `v2.0.0` tag. Walls untouched.
+
+| ID | Result | Measured |
+|---|---|---|
+| B36 | **PASS** | coverage.py `--branch` percent_covered=**85.90%** statements=5982/6690 covered_branches=1972/2570 branch_only=76.73% pytest_rc=0 |
+| B37 | **PASS** | killed=10/10 rc=0 P01–P10 (od_mm, gapped PCF, tools_auth, 12 m spool, 5% RT, 1.5 hydro, B16.5 cap, upload, rate-limit, key-hash) |
+| B38 | **PASS** | pip_audit=0 bandit=0 bom=CycloneDX components=99 |
+| B39 | **PASS** | n_lines=500 routes=500 duration_s=1.017 (<120); tools_missing=none; cap_rows=10; svg nodes ingest/route/pcf/http; edges=9 |
+
+B04, B40: still `_b_unstarted` FAIL (`evidence_files=0`).
+
+**ACCEPTANCE: 36/40 PASS** locally (B01 + B05–B39) without token (B02/B03 FAIL token/parent sha).
+

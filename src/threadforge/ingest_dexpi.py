@@ -15,9 +15,10 @@ are NOT implemented (see WALLS.md).
 
 from __future__ import annotations
 
-import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any, Optional, Union
+
+import defusedxml.ElementTree as ET
 
 from threadforge.dexpi_public import file_known_deltas
 from threadforge.graph import TopologyGraph
@@ -54,11 +55,11 @@ VENDOR_ONLY_GAPS: list[dict[str, str]] = [
 def _text(el: Optional[ET.Element], default: str = "") -> str:
     if el is None or el.text is None:
         return default
-    return el.text.strip()
+    return str(el.text).strip()
 
 
 def _attr(el: ET.Element, name: str, default: str = "") -> str:
-    return el.attrib.get(name, default)
+    return str(el.attrib.get(name, default))
 
 
 def _opt_float(el: ET.Element, *names: str) -> Optional[float]:

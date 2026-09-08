@@ -10,7 +10,9 @@ from __future__ import annotations
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Optional, Union
-from xml.etree.ElementTree import Element, SubElement, fromstring, tostring
+from xml.etree.ElementTree import Element, SubElement, tostring
+
+from defusedxml.ElementTree import fromstring
 
 MSPDI_NS = "http://schemas.microsoft.com/project"
 MSPDI_XSD_REL = Path("fixtures/public/mspdi/mspdi.xsd")
