@@ -69,7 +69,9 @@ def test_maturity_refuses_pcf_export_when_fabricated():
 
 
 def test_maturity_allows_when_no_fabricated():
-    g = load_fixture("sample_pid_rich.xml")
+    from threadforge.maturity import crafted_ifc_ready_graph
+
+    g = crafted_ifc_ready_graph()
     check = maturity_check(MaturityLevel.IFC, MaturityLevel.IFC, action="ifc_export", graph=g)
     assert check["fabricated_lines"] == []
     assert check["allowed"] is True

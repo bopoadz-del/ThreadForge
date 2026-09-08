@@ -347,3 +347,31 @@ B04, B22–B40: still `_b_unstarted` FAIL (`evidence_files=0`).
 
 **ACCEPTANCE: 18/40 PASS** locally (B01 + B05–B21) without token (B02/B03 FAIL token/parent sha).
 
+---
+
+## M4 — B22–B28 measured (hydrotest / AWP / 4D)
+
+Recorded 2026-09-08 after standing gate green + `python scripts/acceptance.py` on this M4 tip
+(started from M3 `bff6c4b7c31642b1b573cb161714ed193b19c322`).
+Checks PASS only on computed B31.3 345.4.2 / B16.5 Table 2-1.1 numbers, C01 pack
+pins, spec-break violation kinds, IWP release look-ahead ids, XER/MSPDI reparse
+counts + xmlschema errors, 4D conflict-by-day pins, cascade dirty-set equality +
+untouched sha256, and FEED→DD→IFC gate booleans. No file-presence PASS path.
+B04 and B29–B40 remain FAIL. B02 stays red (token/HEAD^ CI). No `v2.0.0` tag.
+Walls: ISOGEN cert / NWD/RVT/DGN/DWG / vendor live APIs / client data / web UI
+untouched.
+
+| ID | Result | Measured |
+|---|---|---|
+| B22 | **PASS** | C01 packs=6; MNb \(P=60\) class 400 \(P_T=68.1\) bar (capped from 90); hot \(S_T/S=1.155909\); SYS-MNc blinds BlindFlange-1/2; mismatches=none. Cite B31.3 **345.4.2** + B16.5 **Table 2-1.1** |
+| B23 | **PASS** | crafted 150# into 300# `violation_count=2` `rating_150_300=2` kind=`spec_break_violation` |
+| B24 | **PASS** | released=`['IWP-REL-1']`; look-ahead(`released_only`) ids=`['IWP-REL-1']`; pin iwp_count=5 released_count=1 |
+| B25 | **PASS** | IWPs=5; XER TASK=5 TASKPRED present; MSPDI tasks=5; xmlschema errors=0 tables=PROJECT/TASK/TASKPRED |
+| B26 | **PASS** | sample_schedule.json hard=1 soft=6 craft=0 crane=2 laydown=2; days pin True; zones VOL-CRANE + VOL-LAYDOWN |
+| B27 | **PASS** | dirty=12 kinds=12; untouched sha256 identical for isometric/quantities/test_pack/work_package/pcf/dlb/ga/csv/system/supports/routes/clash |
+| B28 | **PASS** | IFC allowed on crafted ready graph; FEED refused (`flex_screen_pass`, `design_pressure_present`); `ladder_from_gates` DD when pressure present + flex fail |
+
+B04, B29–B40: still `_b_unstarted` FAIL (`evidence_files=0`).
+
+**ACCEPTANCE: 24/40 PASS** locally (B05–B28) without token (B01 FAIL while feature head exists; B02/B03 FAIL token/parent sha). After FF `main` and deleting the feature head, B01 is expected PASS → **25/40** when origin heads=`[refs/heads/main]`.
+
