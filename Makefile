@@ -6,13 +6,16 @@ fetch-fixtures:
 	@python scripts/fetch_public_fixtures.py || true
 
 test:
-	python -m pytest -q
+	python -m pytest -q -p no:cacheprovider
 
 lint:
-	ruff check src tests
+	ruff check src tests scripts
 
 typecheck:
-	mypy --strict src/threadforge
+	mypy --strict src
+
+gate:
+	ruff check src tests scripts && mypy --strict src && pytest -q -p no:cacheprovider && python scripts/dump_openapi.py /tmp/oa.json && diff -q openapi.json /tmp/oa.json && python scripts/mutation_probes.py
 
 dist-zip:
 	@mkdir -p dist

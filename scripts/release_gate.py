@@ -49,8 +49,11 @@ def main() -> int:
 
     run([sys.executable, "-m", "ruff", "check", "src", "tests", "scripts"])
     run([sys.executable, "-m", "mypy", "--strict", "src"])
-    run([sys.executable, "-m", "pytest", "-q"])
-    run([sys.executable, "scripts/openapi_diff.py"])
+    run([sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider"])
+    dumped = "/tmp/oa.json"
+    run([sys.executable, "scripts/dump_openapi.py", dumped])
+    run(["diff", "-q", "openapi.json", dumped])
+    run([sys.executable, "scripts/mutation_probes.py"])
 
     ok, failed = _a01_a29()
     if args.tag:
