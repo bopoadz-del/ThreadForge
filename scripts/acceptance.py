@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
-"""ThreadForge v1.0 acceptance harness — A01–A30.
+"""ThreadForge acceptance harness — A01–A30 (v1) and B01–B40 (v2).
 
-Offline/deterministic. Prints one line per check and a final tally:
+Prints one line per check and tallies:
   ACCEPTANCE: N/30 PASS
-Exit 0 iff all 30 PASS.
+  ACCEPTANCE: K/40 PASS
+Exit 0 iff all 30 A-lines and all 40 B-lines PASS.
 """
 from __future__ import annotations
 
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -728,12 +730,12 @@ def A26() -> tuple[bool, str]:
     return ok, f"keys={list(body)[:10]}"
 
 
-def A27() -> tuple[bool, str]:
-    """HEAD's evidence names HEAD's parent sha.
+_DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64,}$")
+_REQUIRED_CI_JOBS = ("test", "docker", "acceptance", "probes", "publish")
 
-    Commit artifacts/ci/docker_health.json from a successful docker job whose
-    ``sha`` is ``git rev-parse HEAD^``. File presence alone is not enough.
-    """
+
+def _docker_health_five() -> tuple[bool, str]:
+    """HEAD^ docker evidence: five live fields. File presence / old status is not enough."""
     ev = ROOT / "artifacts/ci/docker_health.json"
     if not ev.is_file():
         return False, "missing artifacts/ci/docker_health.json"
@@ -745,56 +747,86 @@ def A27() -> tuple[bool, str]:
     named = data.get("sha") or data.get("parent_sha") or data.get("git_sha")
     if named != parent:
         return False, f"evidence_sha={named} parent={parent} (HEAD evidence must name parent sha)"
-    status = str(data.get("status") or "")
-    ok = status in {"healthy", "ok", "pass"}
-    return ok, f"sha={named} status={status}"
+    health_status = data.get("health_status")
+    health_body = data.get("health_body")
+    unauth = data.get("tools_unauth_status")
+    auth = data.get("tools_auth_status")
+    digest = str(data.get("image_digest") or "")
+    body_ok = False
+    if isinstance(health_body, dict):
+        body_ok = bool(health_body) and "status" in health_body
+    elif isinstance(health_body, str):
+        body_ok = len(health_body.strip()) > 2
+    digest_ok = bool(_DIGEST_RE.match(digest))
+    ok = health_status == 200 and body_ok and unauth == 401 and auth == 200 and digest_ok
+    return ok, (
+        f"sha={named} health_status={health_status} health_body={'yes' if body_ok else 'no'} "
+        f"tools_unauth_status={unauth} tools_auth_status={auth} image_digest={digest or '-'}"
+    )
 
 
-def A28() -> tuple[bool, str]:
-    """External CI evidence for HEAD's parent sha (ci_run.json or Actions API)."""
-    ev = ROOT / "artifacts/ci/ci_run.json"
+def _ci_parent_success() -> tuple[bool, str]:
+    """HEAD^ Actions run must conclude success with required jobs.
+
+    Token or network absent → FAIL (never PASS). Committed ci_run.json is not a PASS path.
+    ``status=completed`` is not ``conclusion=success``.
+    """
     try:
         parent = _git_parent_sha()
     except Exception as exc:  # noqa: BLE001
         return False, f"parent_sha:{type(exc).__name__}: {exc}"
-    if ev.is_file():
-        try:
-            data = json.loads(ev.read_text(encoding="utf-8"))
-        except Exception as exc:  # noqa: BLE001
-            return False, f"ci_run.json:{type(exc).__name__}: {exc}"
-        named = data.get("sha") or data.get("head_sha") or data.get("parent_sha")
-        conclusion = str(data.get("conclusion") or data.get("status") or "").lower()
-        if named != parent:
-            return False, f"ci_run.json sha={named} parent={parent}"
-        if conclusion not in {"success", "completed"}:
-            return False, f"ci_run.json conclusion={conclusion}"
-        run_id = data.get("run_id") or data.get("id")
-        return True, f"ci_run.json sha={named} conclusion={conclusion} run_id={run_id}"
-
-    repo = os.environ.get("GITHUB_REPOSITORY", "bopoadz-del/ThreadForge")
     token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
-    url = (
-        f"https://api.github.com/repos/{repo}/actions/runs"
-        f"?head_sha={parent}&status=completed&per_page=10"
-    )
+    if not token:
+        return False, "token absent"
+    repo = os.environ.get("GITHUB_REPOSITORY", "bopoadz-del/ThreadForge")
+    url = f"https://api.github.com/repos/{repo}/actions/runs?head_sha={parent}&per_page=20"
     headers = {
         "Accept": "application/vnd.github+json",
         "User-Agent": "threadforge-acceptance",
+        "Authorization": f"Bearer {token}",
     }
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
     try:
         req = urllib.request.Request(url, headers=headers)
         with urllib.request.urlopen(req, timeout=15) as resp:
             payload = json.loads(resp.read().decode())
-        runs = payload.get("workflow_runs") or []
-        good = [r for r in runs if str(r.get("conclusion") or "").lower() == "success"]
-        if good:
-            run0 = good[0]
-            return True, f"actions_api run={run0.get('id')} sha={parent} conclusion=success"
-        return False, f"actions_api no successful run for parent={parent} n={len(runs)}"
     except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, OSError) as exc:
-        return False, f"ci_missing=no ci_run.json and Actions API failed: {type(exc).__name__}: {exc}"
+        return False, f"network absent/failed: {type(exc).__name__}: {exc}"
+    runs = payload.get("workflow_runs") or []
+    details: list[str] = []
+    for run in runs:
+        conclusion = str(run.get("conclusion") or "").lower()
+        run_id = run.get("id")
+        jobs_url = f"https://api.github.com/repos/{repo}/actions/runs/{run_id}/jobs?per_page=50"
+        try:
+            req2 = urllib.request.Request(jobs_url, headers=headers)
+            with urllib.request.urlopen(req2, timeout=15) as resp:
+                jobs_payload = json.loads(resp.read().decode())
+        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, OSError) as exc:
+            return False, f"network absent/failed jobs: {type(exc).__name__}: {exc}"
+        job_map: dict[str, str] = {}
+        for job in jobs_payload.get("jobs") or []:
+            job_map[str(job.get("name") or "")] = str(job.get("conclusion") or "").lower()
+        missing = [name for name in _REQUIRED_CI_JOBS if job_map.get(name) != "success"]
+        details.append(f"run={run_id} conclusion={conclusion} jobs={job_map} missing={missing}")
+        if conclusion == "success" and not missing:
+            return True, (
+                f"actions_api run={run_id} sha={parent} conclusion=success "
+                f"jobs={list(_REQUIRED_CI_JOBS)}"
+            )
+    return False, (
+        f"no successful run with jobs {list(_REQUIRED_CI_JOBS)} for parent={parent} "
+        f"n={len(runs)} {details[:2] or 'no-runs'}"
+    )
+
+
+def A27() -> tuple[bool, str]:
+    """B03: docker_health.json for HEAD^ must carry five live fields."""
+    return _docker_health_five()
+
+
+def A28() -> tuple[bool, str]:
+    """B02: Actions conclusion==success for HEAD^ with required jobs; token/network required."""
+    return _ci_parent_success()
 
 
 def A29() -> tuple[bool, str]:
@@ -857,6 +889,122 @@ def A30() -> tuple[bool, str]:
     return ok, f"tag=v1.0.1 remote={remote_word} local_sha={local_sha or '-'} remote_sha={remote_sha or '-'}"
 
 
+def B01() -> tuple[bool, str]:
+    """main is the only origin head; v1.0.0 / v1.0.1 (and v2.0.0 if present) sit on it."""
+    try:
+        raw = subprocess.check_output(
+            ["git", "ls-remote", "--heads", "origin"],
+            cwd=str(ROOT),
+            text=True,
+            timeout=20,
+        )
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as exc:
+        return False, f"ls-remote heads failed: {type(exc).__name__}: {exc}"
+    refs = [line.split()[1] for line in raw.splitlines() if len(line.split()) == 2]
+    if refs != ["refs/heads/main"]:
+        return False, f"heads={refs} count={len(refs)} want=[refs/heads/main]"
+    try:
+        main_line = subprocess.check_output(
+            ["git", "ls-remote", "origin", "refs/heads/main"],
+            cwd=str(ROOT),
+            text=True,
+            timeout=20,
+        ).strip()
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as exc:
+        return False, f"ls-remote main failed: {type(exc).__name__}: {exc}"
+    main_sha = main_line.split()[0] if main_line else ""
+    if not main_sha:
+        return False, "origin/main sha empty"
+    tag_bits: list[str] = []
+    for tag in ("v1.0.0", "v1.0.1"):
+        try:
+            remote = subprocess.check_output(
+                ["git", "ls-remote", "--tags", "origin", f"refs/tags/{tag}*"],
+                cwd=str(ROOT),
+                text=True,
+                timeout=20,
+            )
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as exc:
+            return False, f"ls-remote {tag} failed: {type(exc).__name__}: {exc}"
+        peeled = ""
+        lightweight = ""
+        for line in remote.splitlines():
+            parts = line.split()
+            if len(parts) != 2:
+                continue
+            sha, ref = parts
+            if ref.endswith("^{}"):
+                peeled = sha
+            elif ref.endswith(f"refs/tags/{tag}"):
+                lightweight = sha
+        tag_sha = peeled or lightweight
+        if not tag_sha:
+            return False, f"tag {tag} missing on origin"
+        anc = subprocess.run(
+            ["git", "merge-base", "--is-ancestor", tag_sha, main_sha],
+            cwd=str(ROOT),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        if anc.returncode != 0:
+            return False, f"{tag}={tag_sha} not ancestor of main={main_sha}"
+        tag_bits.append(f"{tag}={tag_sha[:12]}")
+    try:
+        v2_raw = subprocess.check_output(
+            ["git", "ls-remote", "--tags", "origin", "refs/tags/v2.0.0*"],
+            cwd=str(ROOT),
+            text=True,
+            timeout=20,
+        )
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as exc:
+        return False, f"ls-remote v2.0.0 failed: {type(exc).__name__}: {exc}"
+    v2_note = "v2.0.0=absent"
+    if any(line.split()[-1].endswith("refs/tags/v2.0.0") for line in v2_raw.splitlines() if line.split()):
+        peeled = ""
+        lightweight = ""
+        for line in v2_raw.splitlines():
+            parts = line.split()
+            if len(parts) != 2:
+                continue
+            sha, ref = parts
+            if ref.endswith("^{}"):
+                peeled = sha
+            elif ref.endswith("refs/tags/v2.0.0"):
+                lightweight = sha
+        v2_sha = peeled or lightweight
+        anc = subprocess.run(
+            ["git", "merge-base", "--is-ancestor", v2_sha, main_sha],
+            cwd=str(ROOT),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        if anc.returncode != 0:
+            return False, f"v2.0.0={v2_sha} not ancestor of main={main_sha}"
+        v2_note = f"v2.0.0={v2_sha[:12]}"
+    return True, f"heads=1 main={main_sha} tags={','.join(tag_bits)} {v2_note}"
+
+
+def B02() -> tuple[bool, str]:
+    return _ci_parent_success()
+
+
+def B03() -> tuple[bool, str]:
+    return _docker_health_five()
+
+
+def _b_unstarted(bid: str) -> Callable[[], tuple[bool, str]]:
+    def _fn() -> tuple[bool, str]:
+        ev_dir = ROOT / "artifacts" / "ci"
+        matches = sorted(ev_dir.glob(f"{bid.lower()}*.json")) if ev_dir.is_dir() else []
+        return False, (
+            f"{bid} not in M0; M1–M7 not started; "
+            f"evidence_files={len(matches)} (no remote/process PASS evidence)"
+        )
+
+    _fn.__name__ = bid
+    return _fn
+
+
 CHECKS = [
     ("A01", A01),
     ("A02", A02),
@@ -890,13 +1038,23 @@ CHECKS = [
     ("A30", A30),
 ]
 
+B_CHECKS: list[tuple[str, Callable[[], tuple[bool, str]]]] = [
+    ("B01", B01),
+    ("B02", B02),
+    ("B03", B03),
+] + [(f"B{n:02d}", _b_unstarted(f"B{n:02d}")) for n in range(4, 41)]
+
 
 def main() -> int:
     for aid, fn in CHECKS:
         _safe(aid, fn)
-    passed = sum(1 for _, ok, _ in RESULTS if ok)
-    print(f"ACCEPTANCE: {passed}/30 PASS")
-    return 0 if passed == 30 else 1
+    for bid, fn in B_CHECKS:
+        _safe(bid, fn)
+    a_pass = sum(1 for aid, ok, _ in RESULTS if aid.startswith("A") and ok)
+    b_pass = sum(1 for aid, ok, _ in RESULTS if aid.startswith("B") and ok)
+    print(f"ACCEPTANCE: {a_pass}/30 PASS")
+    print(f"ACCEPTANCE: {b_pass}/40 PASS")
+    return 0 if a_pass == 30 and b_pass == 40 else 1
 
 
 if __name__ == "__main__":
